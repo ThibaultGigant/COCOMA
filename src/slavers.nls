@@ -6,6 +6,7 @@ slavers-own [
   vision-radius
   shoot-radius
   speed
+  target
 ]
 
 to setup-enemies
@@ -17,6 +18,7 @@ to setup-enemies
     set vision-radius slavers-vision-radius
     set shoot-radius slavers-shoot-radius
     set speed 0.05 * simu-speed
+    set target nobody
     
     ;; ASPECT
     set shape "truck"
@@ -45,12 +47,26 @@ to random-move
     [
       rt random 90 - 45
     ]
-    set carburant carburant - 1
   ]
+end
+
+; TODO detect-convois par encore prêt
+to detect-convois
+  set target one-of convois-on patches with [ distance myself < slavers-vision-radius ]
+end
+
+to move
+  ifelse target = nobody 
+  [ random-move ]
+  [
+    set color blue
+  ]
+  set carburant carburant - 1
 end
 
 to slavers-think
   ask slavers [
     random-move
+    detect-convois
   ]
 end

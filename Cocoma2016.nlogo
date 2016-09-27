@@ -46,7 +46,6 @@ to setup
     setup-env
     clear-turtles ; reinit the id of the agents
     setup-convois ;
-    setup-slavers
 
     ifelse nb-cars <= 0 [
       set path-is-possible? true
@@ -60,7 +59,7 @@ to setup
   ]
   if not debug and not debug-verbose [no-display]
   ;setup-drones
-  ;setup-enemies
+  setup-enemies
   ;setup-citizens
 ;  setup-hq
 
@@ -249,14 +248,19 @@ end
 
 to go
   convois-think
+  slavers-think
   tick
+  if all? convois [ finished? ] [ stop ] ; Si tout le monde est arrivé, on arrête
 end
 
 ; Replace le convoi à la base
 to reset
+  setup-globals
   clear-turtles
   setup-convois
-  display
+  setup-enemies
+  let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) false)
+  set as-path replace-item 0 as-path start-path
 end
 
 ;;;;;;;;;;;;;;;;;;; DON'T FORGET DON CAMILLO ;;;;;;;;;;;;;;;;;;;;;;;
@@ -270,11 +274,11 @@ end
 GRAPHICS-WINDOW
 0
 0
-720
-741
+4980
+5001
 -1
 -1
-10.0
+70.0
 1
 10
 1
@@ -390,10 +394,10 @@ nb-rivers
 Number
 
 INPUTBOX
-663
-185
-824
-245
+476
+196
+637
+256
 astar-faster
 20
 1
@@ -401,10 +405,10 @@ astar-faster
 Number
 
 INPUTBOX
-663
-259
-824
-319
+476
+270
+637
+330
 astar-max-depth
 5000
 1
@@ -412,21 +416,21 @@ astar-max-depth
 Number
 
 SWITCH
-471
-183
-635
-216
-astar-longpath
-astar-longpath
-1
-1
--1000
-
-SWITCH
-471
+284
+194
+448
 227
-634
-260
+astar-longpath
+astar-longpath
+0
+1
+-1000
+
+SWITCH
+284
+238
+447
+271
 astar-randpath
 astar-randpath
 1
@@ -434,10 +438,10 @@ astar-randpath
 -1000
 
 SWITCH
-468
-320
-630
-353
+281
+331
+443
+364
 astar-visu-more
 astar-visu-more
 1
@@ -445,10 +449,10 @@ astar-visu-more
 -1000
 
 SWITCH
-469
-272
-632
-305
+282
+283
+445
+316
 astar-visu
 astar-visu
 0
@@ -464,7 +468,7 @@ simu-speed
 simu-speed
 0
 10
-1
+3
 1
 1
 NIL
@@ -491,10 +495,10 @@ Simulation
 1
 
 TEXTBOX
-461
-154
-611
-172
+274
+165
+424
+183
 A*
 12
 0.0
@@ -557,10 +561,80 @@ INPUTBOX
 348
 115
 nb-slavers
-3
+10
 1
 0
 Number
+
+TEXTBOX
+280
+386
+430
+404
+Ennemis
+11
+0.0
+1
+
+SLIDER
+280
+411
+495
+444
+average-munition-slavers
+average-munition-slavers
+0
+50
+25
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+280
+448
+495
+481
+average-carburant-slavers
+average-carburant-slavers
+0
+5000
+5000
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+498
+411
+685
+444
+slavers-vision-radius
+slavers-vision-radius
+0
+20
+10
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+498
+448
+685
+481
+slavers-shoot-radius
+slavers-shoot-radius
+0
+20
+10
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -905,7 +979,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

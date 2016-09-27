@@ -9,12 +9,13 @@ to split-convoi [ id ] ; id = cars / 2
   ask new-leader [
     set leader? true
     ; set color orange
-    set color blue    
-    set genlongpath? not genlongpath?
-  
+    set color blue
+    set astar-longpath not astar-longpath
+    
     ; unlink
   ]
-  
+  ; affichage de astar
+  astar-affichage ([[patch-at 0 0 (pzcor * -1)] of patch-here] of new-leader) (one-of patches with [objectif?])
 end
 
 to split

@@ -1,3 +1,5 @@
+__includes ["src/functions-astar.nls" "src/convois.nls" "src/functions-convois.nls" "src/slavers.nls"]
+
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
 breed [convois convoi]
@@ -44,11 +46,12 @@ to setup
     setup-env
     clear-turtles ; reinit the id of the agents
     setup-convois ;
+    setup-slavers
 
     ifelse nb-cars <= 0 [
       set path-is-possible? true
     ]
-    ; generate a path and check is the convoi can reach its destination. If not, generate a new env
+    ; generate a path and check if the convoi can reach its destination. If not, generate a new env
     [
       let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) false)
       set as-path replace-item 0 as-path start-path
@@ -244,333 +247,34 @@ to setup-convois
   ]
 end
 
+to go
+  convois-think
+  tick
+end
 
-;------------------------------------------------------------
-;------------- functions ------------------------------------
-;------------------------------------------------------------
-
-; Plannification AStar d'un patch start vers un patch goal
-; Note: si l'heuristique est consistante/monotone (comme distance euclidienne/vol d'oiseau), h = 0 revient a faire Djikstra
-; Note2: on l'utilise avec le convoi mais on peut l'utiliser avec n'importe quel agent, c'est generique.
-; Note3: limite en 2D pour cette application mais on peut facilement la modifier pour accepter la 3D (enlever les limites with [pzcor ...])
-to-report plan-astar [start goal longpath?] ; start et goal sont des patchs
-
-  ; Desactivation du refresh GUI (car calculs internes): Pour etre plus rapide, on dit a NetLogo qu'il peut calculer toute cette fonction sans avoir a updater le GUI (que des calculs internes), comme ca le slider de vitesse n'influencera pas la vitesse de ce code (sinon en slower ca met vraiment beaucoup de temps)
-  if not debug-verbose [no-display]
-
-  ; INIT
-  ; Ajustement du niveau du but par rapport au start, car le plan est en 2D ici
-  let start-pzcor [pzcor] of start
-  set goal [patch-at 0 0 ([pzcor] of start - [pzcor] of goal)] of goal
-
-  ; (Re)init des variables AStar sur tous les patchs
-  ;let closed n-values world-height [n-values world-width [0]]
-  ask patches [
-    set as-closed 0 ; sert a savoir si ce patch a deja ete visite. 0 = non visite, 1 = deja visite (et on visite en premier par le chemin optimal comme Djikstra, donc si un noeud a deja ete visite, on est sur qu'il est inutile de le revisiter par un autre chemin puisqu'il sera moins optimal que le premier chemin qui a conduit a ce patch - ceci est assure car on utilise la distance euclidienne a vol d'oiseau qui est une heuristique consistante/monotone, pas juste admissible)
-    set as-heuristic astar-faster * distance-nowrap goal ; si astar-faster > 1 alors on utilise Weighted AStar, ou le chemin est suboptimal avec une limite de cout au plus astar-faster fois supérieur au cout du chemin optimal. (eg: astar-faster = 2 signifie que le chemin sera au pire deux fois moins optimal au pire). Note: si astar-faster = 0 alors h = 0 pour tous les patchs et ca revient à l'algo de Dijkstra.
-  ]
-
-  ; Init de l'algo en utilisant le patch de depart
-  let pos start
-  let h [as-heuristic] of start
-  let g 0
-  let f (g + h)
-
-  ; Init de la liste open (la liste des patchs a explorer) du type [f, g, h, position du patch]
-  let open (list (list f g h pos))
-
-  ; Init des criteres d'arret
-  let found false ; si un chemin a ete trouve
-  let resign false ; si aucun chemin ne peut etre trouve (plus rien dans la liste open)
-  let counter 0 ; si on a visite trop de patchs et que la recherche met trop de temps
-
-  while [not found and not resign] [
-
-    ; Critere d'arret si echec (plus de patch a visiter ou trop de patchs deja visite)
-    ifelse empty? open or (astar-max-depth > 0 and counter > astar-max-depth) [
-      set resign true
-    ]
-    [
-      ; Incremente le counter
-      set counter counter + 1
-
-      ; On reorganise la liste open pour toujours visiter le meilleur patch candidat en premier (celui qui maximise f)
-      set open sort-by [item 0 ?1 < item 0 ?2] open
-      ; Cas particulier: on visite le plus mauvais patch, celui qui minimise f, pour maximiser la longueur du chemin (cool pour tester les drones car l'environnement reste relativement petit)
-      if astar-longpath or longpath? [set open reverse open]
-      ; Autre cas particulier: on visite le chemin au hasard, permet aussi de construire un long chemin (mais moins long) et plus rapidement. C'est un compromis entre l'optimal et la longueur.
-      if astar-randpath [set open shuffle open]
-
-      ; Pop un element de la liste, le meilleur candidat
-      let next first open
-      set open but-first open
-      set pos item 3 next
-      set g item 1 next
-
-      ; Dessin en live du chemin parcouru par astar
-      if debug-verbose [
-      wait 0.01
-      ask pos [ set pcolor red ]
-      ]
-
-      ; Critere d'arret si reussite: on est sur le but donc on a trouve un chemin
-      ifelse pos = goal [
-        set found true
-      ]
-      ; Sinon on va explorer les voisins du patch en cours
-      [
-        ; Expansion du meilleur candidat (expansion = on ajoute les voisins dans la liste open, des noeuds a visiter)
-        ask [neighbors6-nowrap with [pzcor = start-pzcor and as-closed = 0 and not obstacle? and not base?]] of pos [ ; On ne visite que les voisins au meme niveau (astar en 2D, mais on peut etendre ici au 3D facilement!) ET on ne l'a pas deja visite (as-closed = 0) ET il n'y a pas d'obstacle sur ce patch
-          ; Calcul du score f de ce voisin
-          let g2 g + as-cost
-          let h2 as-heuristic
-          let f2 g2 + h2
-
-          ; Ajout dans la liste open des patchs a visiter
-          set open lput (list f2 g2 h2 self) open
-
-          ; Ajout des meta-donnees sur ce patch
-          ;set as-closed min (list ((as-closed + 1) ([as-closed] of pos + 1)) ; Pas necessaire car on est sur qu'on ne visite qu'une fois un noeud dans open, ensuite on lui attribue un nombre dans closed et donc on ne l'ouvrira plus jamais
-          set as-closed ([as-closed] of pos + 1) ; pour savoir que ce patch a deja ete visite + faire astar-visu-more
-          set as-prev-pos pos ; pour backtracker ensuite et trouver le chemin qui mene au but
-        ]
-      ]
-    ]
-  ]
-
-  if debug [print (word "found:" found " - resign:" resign)]
-
-  ; Visualisation de tous les noeuds explores en coloriant selon quand ca a ete explore (score as-closed)
-  if astar-visu-more [
-    let max-closed max [as-closed] of patches with [pzcor = start-pzcor] ; Récupère la valeur tdval max entre tous les patchs
-    let min-closed min [as-closed] of patches with [pzcor = start-pzcor] ; Idem pour min tdval
-    if (max-closed != min-closed) [ ; Si on a au moins appris quelquechose (sinon tous les patchs auront la même couleur, ce n'est pas intéressant)
-      ask patches with [pzcor = start-pzcor] [
-        if debug [set plabel precision as-closed 1]
-        set pcolor (61 + ((as-closed - min-closed) / (max-closed - min-closed)) * 9 )
-      ]
-    ]
-  ]
-
-  ; Extraction du chemin par marche inverse, depuis le goal vers start (grace a as-prev-pos qui memorise depuis quel patch on est arrive a celui en cours, et donc le chemin le plus court puisque l'algo garantie que la premiere exploration est toujours optimale)
-  let path []
-  if not resign [
-    ; On commence du but, goal
-    set pos goal
-    set path lput pos path
-
-    ; Pour la visualisation du chemin, init du premier waypoint
-    if astar-visu [
-      if any? waypoints [
-        ask waypoints [ die ]
-      ]
-      create-waypoints 1 [ hide-turtle move-to [patch-at 0 0 1] of goal ]
-    ]
-
-    ; Tant qu'on a pas reconstruit tout le chemin vers le debut, start
-    ; On va a chaque fois recuperer le noeud parent avec as-prev-pos
-    while [pos != start] [
-
-      ; Visualisation du chemin, on ajoute un lien entre le parent et le noeud en cours
-      if astar-visu [
-        create-waypoints 1 [ hide-turtle move-to [patch-at 0 0 1] of ([as-prev-pos] of pos)
-          create-path-link-to one-of waypoints-on [patch-at 0 0 1] of pos [
-            set color red
-            show-link
-          ]
-        ]
-      ]
-
-      ; Construction inverse du chemin, on ajoute le noeud parent dans le chemin et on va l'explorer
-      ;set pos [min-one-of neighbors6-nowrap [as-closed]] of pos
-      set pos [as-prev-pos] of pos
-      set path lput pos path
-    ]
-
-    ; Chemin construit, on inverse la liste pour qu'elle soit de start a goal au lieu de l'inverse
-    set path reverse path
-    set path but-first path ; on enleve le premier patch, qui est celui sur lequel on est deja
-  ]
-
-  ; Reactivation du refresh GUI
+; Replace le convoi à la base
+to reset
+  clear-turtles
+  setup-convois
   display
-
-  ; Et on retourne le chemin complet (ou une liste vide si on n'a rien trouve)
-  report path
 end
 
-
-; Return the 6 neighbours without the world wrap
-to-report neighbors6-nowrap
-; reports neighbors-nowrap-n or the indicated size
-report neighbors6 with
-[ abs (pxcor - [pxcor] of myself) <= 1
-  and abs (pycor - [pycor] of myself) <= 1
-]
-end
-
-
-;-----------
-;  CONVOIS
-;-----------
-
-; Procedure principale de gestion des convois
-to convois-think
-
-  if nb-cars > 0 [
-
-    let first-car min [who] of convois
-
-    ; Calcul du plan AStar pour chaque leader si necessaire
-    foreach sort-on [who] turtle-set convois with [leader? and not finished? and not dead?] [
-      let id ([who] of ?) - first-car
-      ; Recalcule le chemin si nécessaire (par exemple au début de la simulation ou quand le convoi se sépare)
-      ; Note: on est oblige de le faire en dehors du ask sinon on ne peut pas acceder a tous les patchs
-      if empty? as-path or length as-path < (id + 1) or empty? (item id as-path) [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
-        ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
-        let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
-        let new-path plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) (one-of patches with [objectif?]) ([genlongpath?] of ?)
-        ; S'il n'y a pas de plan et qu'on a essayé de trouver un long chemin, on attend la prochaine iteration et on reessaie mais avec un plan court
-        if empty? new-path and [genlongpath?] of ? [ ask ? [ set genlongpath? false ] ]
-        ; S'il n'y a pas deja une entree pour cette voiture on la cree
-        ifelse length as-path < (id + 1) [
-          set as-path lput new-path as-path
-        ]
-        ; Sinon on remplace l'entree pour cette voiture par le nouveau plan
-        [
-          set as-path replace-item id as-path new-path
-        ]
-      ]
-    ]
-
-    ; Deplacement des leaders sur le chemin AStar
-    ask convois with [leader? and not finished? and not dead?] [ ; Tant qu'on n'a pas atteint le but
-      ;move-convoi-naive ; deplacement naif sans AStar
-
-      ; Recupere le plan AStar
-      let my-as-path item (who - first-car) as-path
-      if not empty? my-as-path [
-        ; Deplacement par waypoints: on se deplace jusqu'au prochain patch du chemin jusqu'à l'atteindre
-        let next-patch first my-as-path
-        let zz pzcor
-        set next-patch [patch-at 0 0 (zz - pzcor)] of next-patch ; mise a niveau de pzcor au cas ou le chemin a ete calculé sur un autre plan
-        ; Deplacement vers le prochain waypoint
-        if next-patch != patch-here [move-convoi next-patch false false]
-        ; Si on a atteint ce patch, on le supprime de la liste, et on va donc continuer vers le prochain patch du chemin
-        if patch-here = next-patch [
-          set my-as-path remove-item 0 my-as-path
-          set as-path replace-item (who - first-car) as-path my-as-path
-          if debug [ show (word "Waypoint atteint: " patch-here ", prochain: " next-patch ) ]
-        ]
-      ]
-
-      ; Critere d'arret: on est a cote de l'objectif
-      check-convoi-finished
-
-    ]
-
-    ; Deplacement des voitures-cortege: elles ne font que suivre la voiture devant eux (avec laquelle elles sont liées)
-    ask convois with [not leader? and not finished? and not dead?] [
-      ifelse any? my-out-convoi-links [
-        move-convoi ([patch-here] of one-of out-convoi-link-neighbors) true true
-      ]
-      ; S'il n'y a pas de lien devant, c'est probablement que la voiture est morte, donc on devient leader
-      [
-        set leader? true
-        set genlongpath? true
-        if not to-protect? [ set color orange ]
-      ]
-    ]
-  ]
-end
-
-to-report detect-obstacle
- if any? other patches in-cone 10 60 with [obstacle?] [report true]
-; if any? other patches in-cone 10 90 [report true]
-; if any? other patches in-cone 3 270 [report true]
- report false
-end
-
-to turn-away
-   ;let free-patches neighbors with [not any? patches ]
-   ;if any? free-patches [face one-of free-patches]
-   rt random 10 - 5
-end
-
-to check-convoi-finished
-  ; Critere d'arret: on est a cote de l'objectif
-  ; Note: on veut etre a cote de l'objectif et pas directement dessus car on est une voiture, donc il se peut qu'on tourne indefiniment autour sans arriver directement a arriver dessus a cause de la limite d'angle de rotation.
-  if any? [neighbors6-nowrap with [objectif?]] of patch-here [ ; On ne bouge pas si on est arrive au but!
-                                                               ; Fini pour le leader
-    set finished? true
-    ; Fini aussi pour toutes les voitures-cortege qui suivent ce leader
-    let linked-cars (list in-convoi-link-neighbors)
-    while [not empty? linked-cars] [ ; on fait une boucle pour recursivement mettre a finished? = true toutes les voitures liees entre elles dans ce cortege
-      let next-linked-cars []
-      foreach linked-cars [
-        ask ? [
-          set finished? true
-          if any? in-convoi-link-neighbors [ ; on recupere les voitures-cortege liees a la voiture-cortege en cours
-            set next-linked-cars lput in-convoi-link-neighbors next-linked-cars
-          ]
-        ]
-      ]
-      set linked-cars next-linked-cars
-    ]
-  ]
-end
-
-; Avancer une voiture
-; Permet de faire avancer les voitures d'un convoi (cortege et leader)
-; Maintien egalement une petite distance afin de ne pas "rentrer" dans la voiture de devant
-to move-convoi [goal slowdown? cortege?]
-  ;show (word "ici:" patch-here " goal:" goal)
-
-  ; Calcule de l'angle avec la cible
-  let headingFlag heading
-  ifelse cortege?
-  [ set headingFlag (towards goal) ] ; Si c'est un cortege, on veut qu'il suive toujours le leader par le chemin le plus court (surtout en play-mode ou le joueur n'est pas limite par le nowrap)
-  [ set headingFlag (towards-nowrap goal) ]
-  let dirCorrection subtract-headings headingFlag heading
-  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
-  set dirCorrection precision dirCorrection 2
-  ; Limite de l'angle, pour que ce soit plus realiste (la voiture ne peut pas faire un demi-tour sur place!)
-  ifelse dirCorrection > maxdir [ ; limite a droite
-    set dirCorrection maxdir
-  ]
-  [
-    if dirCorrection < maxdir * -1 [ ; limite a gauche
-      set dirCorrection maxdir * -1
-    ]
-  ]
-
-  ; On tourne
-  rt dirCorrection
-
-  ; Limite de vitesse pour les voitures-cortege (pour pas qu'elles ne rentrent dans la voiture leader)
-  let tmp-speed speed
-  if slowdown? [
-    if distance-nowrap goal < 1.1 [
-      set tmp-speed tmp-speed / 20
-    ]
-    if distance-nowrap goal < 0.9 [
-      set tmp-speed 0
-    ]
-  ]
-
-  ; Deplacement!
-  set pitch 0 ; make sure there's no pitch ever, else the car will disappear in the ground
-  fd tmp-speed ; Avance
+;;;;;;;;;;;;;;;;;;; DON'T FORGET DON CAMILLO ;;;;;;;;;;;;;;;;;;;;;;;
+; Verifie si les leaders sont toujours en vie
+; Reafecte le poste selon les cas
+to check-leaders
+;   ask convois with [ leader? and dead? ]
+  ; plus tard
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 0
 0
-439
-460
-16
-16
-13.0
+720
+741
+-1
+-1
+10.0
 1
 10
 1
@@ -580,10 +284,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--16
-16
--16
-16
+0
+70
+0
+70
 0
 0
 1
@@ -630,7 +334,7 @@ INPUTBOX
 70
 115
 nb-cars
-3
+6
 1
 0
 Number
@@ -702,7 +406,7 @@ INPUTBOX
 824
 319
 astar-max-depth
-1000
+5000
 1
 0
 Number
@@ -714,7 +418,7 @@ SWITCH
 216
 astar-longpath
 astar-longpath
-0
+1
 1
 -1000
 
@@ -795,6 +499,68 @@ A*
 12
 0.0
 1
+
+BUTTON
+97
+386
+160
+419
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
+
+BUTTON
+17
+425
+87
+458
+NIL
+reset
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+99
+427
+211
+460
+NIL
+split
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+INPUTBOX
+276
+55
+348
+115
+nb-slavers
+3
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1139,7 +905,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

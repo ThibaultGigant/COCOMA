@@ -1,0 +1,38 @@
+breed [slavers slaver]
+
+slavers-own [
+  munitions
+  carburant
+  vision-radius
+  shoot-radius
+]
+
+to setup-slavers
+  let average-munition-slavers 10
+  let average-carburant-slavers 10
+  let slavers-vision-radius 10
+  let slavers-shoot-radius 10
+  
+  
+  
+  create-slavers nb-slavers
+  ask slavers [
+    ;; OWN VARIABLES
+    set munitions (average-munition-slavers - 5 + random 10)
+    set carburant (average-carburant-slavers - 5 + random 10)
+    set vision-radius slavers-vision-radius
+    set shoot-radius slavers-shoot-radius
+    
+    ;; ASPECT
+    set shape "truck"
+    set color red - 2
+    
+    ;; PLACEMENT
+    ; La moitié arrive du flanc nord
+    ; L'autre arrive du flanc ouest
+    let tmp random 2
+    let randx random (max-pxcor / 10)
+    let randy random (max-pycor / 10)
+    move-to patch ((max-pxcor - randx) * tmp) ((max-pycor - randy)*(1 - tmp)) 1
+  ]
+end

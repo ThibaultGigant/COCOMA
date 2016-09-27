@@ -1,0 +1,22 @@
+;;;;;;;;;;;;;;;;;;;;;;;
+;; Convois Cognition ;;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+to split-convoi [ id ] ; id = cars / 2
+  
+  let new-leader convoi id
+  
+  ask new-leader [
+    set leader? true
+    ; set color orange
+    set color blue    
+    set genlongpath? not genlongpath?
+  
+    ; unlink
+  ]
+  
+end
+
+to split
+  split-convoi nb-cars / 2
+end

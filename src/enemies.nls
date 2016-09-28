@@ -1,0 +1,85 @@
+breed [enemies enemy]
+
+enemies-own [
+  beliefs
+  intentions
+  munitions
+  carburant
+  vision-radius
+  shoot-radius
+  speed
+  target
+]
+
+to setup-enemies
+  create-enemies nb-enemies
+  ask enemies [
+    ;; OWN VARIABLES
+    set munitions (average-munition-enemies - 5 + random 10)
+    set carburant (average-carburant-enemies - 5 + random 10)
+    set vision-radius enemies-vision-radius
+    set shoot-radius enemies-shoot-radius
+    set speed 0.05 * simu-speed
+    set beliefs ([])
+    set intentions ([])
+    
+    ;; ASPECT
+    set shape "truck"
+    set color red - 2
+    
+    ;; PLACEMENT
+    
+    ; La moitié arrive du flanc nord
+    ; L'autre arrive du flanc ouest
+    ;    let tmp random 2
+    ;    let randx random (max-pxcor / 10)
+    ;    let randy random (max-pycor / 10)
+    ;    move-to patch ((max-pxcor - randx) * tmp) ((max-pycor - randy)*(1 - tmp)) 1
+    
+    ; move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar?]
+    move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = mapAlt ]
+    
+    detect-convois
+  ]
+end
+
+to random-move
+  if random 1000 < 1 [ lt random 90 - 45 ]
+  ifelse not detect-obstacle [ 
+    fd speed
+  ]
+  [
+    rt random 90 - 45
+  ]
+end
+
+to move-to-target
+  let primary-target first sort-on [distance myself] target
+  face primary-target
+  if distance primary-target > enemies-shoot-radius / 2 and not [obstacle?] of patch-ahead speed [
+    fd speed
+  ]
+end
+
+to detect-convois
+  set target convois in-radius-nowrap enemies-vision-radius
+end
+
+to move
+  if carburant > 0 [
+    ifelse count target = 0 [
+      random-move
+    ]
+    [
+      move-to-target
+    ]
+  ]
+  set carburant carburant - 1
+end
+
+to enemies-think
+  ask enemies [
+    move
+    detect-convois
+  ]
+end

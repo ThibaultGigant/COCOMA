@@ -1,4 +1,4 @@
-__includes ["src/functions-astar.nls" "src/convois.nls" "src/functions-convois.nls" "src/slavers.nls"]
+__includes ["src/functions-astar.nls" "src/convois.nls" "src/functions-convois.nls" "src/enemies.nls" "src/BDI.nls"]
 
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
@@ -16,6 +16,8 @@ globals [mapAlt solAlt basseAlt hauteAlt ; variables topologiques Z discretise: 
   mission-completed? mission-failed?
   send-interval ; communication period
   is-movie-recording?
+  show-intentions
+  show_messages
   ]
 
 patches-own [obstacle? base? hangar? objectif? bridge? ; variables topologiques au niveau mapAlt, permet de definir les patchs praticables et ceux qui sont des obstacles
@@ -248,7 +250,7 @@ end
 
 to go
   convois-think
-  slavers-think
+  enemies-think
   tick
   if all? convois [ finished? ] [ stop ] ; Si tout le monde est arrivé, on arrête
 end
@@ -274,11 +276,11 @@ end
 GRAPHICS-WINDOW
 0
 0
-4980
-5001
+720
+741
 -1
 -1
-70.0
+10.0
 1
 10
 1
@@ -560,8 +562,8 @@ INPUTBOX
 55
 348
 115
-nb-slavers
-10
+nb-enemies
+3
 1
 0
 Number
@@ -581,8 +583,8 @@ SLIDER
 411
 495
 444
-average-munition-slavers
-average-munition-slavers
+average-munition-enemies
+average-munition-enemies
 0
 50
 25
@@ -594,10 +596,10 @@ HORIZONTAL
 SLIDER
 280
 448
-495
+515
 481
-average-carburant-slavers
-average-carburant-slavers
+average-carburant-enemies
+average-carburant-enemies
 0
 5000
 5000
@@ -611,11 +613,11 @@ SLIDER
 411
 685
 444
-slavers-vision-radius
-slavers-vision-radius
+enemies-vision-radius
+enemies-vision-radius
 0
+100
 20
-10
 1
 1
 NIL
@@ -626,8 +628,8 @@ SLIDER
 448
 685
 481
-slavers-shoot-radius
-slavers-shoot-radius
+enemies-shoot-radius
+enemies-shoot-radius
 0
 20
 10

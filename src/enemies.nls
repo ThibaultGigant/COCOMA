@@ -22,6 +22,7 @@ to setup-enemies
     set speed 0.05 * simu-speed
     set beliefs ([])
     set intentions ([])
+    set target nobody
     
     ;; ASPECT
     set shape "truck"
@@ -38,14 +39,12 @@ to setup-enemies
     
     ; move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar?]
     move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = mapAlt ]
-    
-    detect-convois
   ]
 end
 
 to random-move
-  if random 1000 < 1 [ lt random 90 - 45 ]
-  ifelse not detect-obstacle [ 
+  if random 100 < 1 [ lt random 90 - 45 ]
+  ifelse not [obstacle?] of patch-ahead speed [ 
     fd speed
   ]
   [
@@ -54,32 +53,42 @@ to random-move
 end
 
 to move-to-target
-  let primary-target first sort-on [distance myself] target
-  face primary-target
-  if distance primary-target > enemies-shoot-radius / 2 and not [obstacle?] of patch-ahead speed [
+  face-nowrap target
+  if distance target > enemies-shoot-radius / 2 and not [obstacle?] of patch-ahead speed [
     fd speed
   ]
 end
 
 to detect-convois
-  set target convois in-radius-nowrap enemies-vision-radius
+  let targets convois in-radius-nowrap enemies-vision-radius
+  ifelse count targets = 0 [
+    set target nobody
+  ]
+  [
+    set target first sort-on [distance myself] targets
+  ]
 end
 
 to move
-  if carburant > 0 [
-    ifelse count target = 0 [
-      random-move
-    ]
-    [
-      move-to-target
-    ]
+  ;if carburant > 0 [
+  ifelse target = nobody [
+    random-move
   ]
-  set carburant carburant - 1
+  [
+    move-to-target
+  ]
+  ;]
+  ;set carburant carburant - 1
+end
+
+to shoot-convois-in-range
+  
 end
 
 to enemies-think
   ask enemies [
     move
     detect-convois
+    shoot-convois-in-range
   ]
 end

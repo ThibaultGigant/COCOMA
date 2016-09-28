@@ -470,7 +470,7 @@ simu-speed
 simu-speed
 0
 10
-3
+1
 1
 1
 NIL
@@ -596,7 +596,7 @@ HORIZONTAL
 SLIDER
 280
 448
-515
+494
 481
 average-carburant-enemies
 average-carburant-enemies

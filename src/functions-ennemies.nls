@@ -1,0 +1,69 @@
+; TODO gerer le maxdir-ennemy ?
+to move-ennemy [goal slowdown?]
+  let maxdir-ennemy 10
+
+  ; Calcule de l'angle avec la cible
+  let headingFlag heading
+  set headingFlag (towards-nowrap goal)
+  let dirCorrection subtract-headings headingFlag heading
+  
+  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
+  set dirCorrection precision dirCorrection 2
+  
+  ; Limite de l'angle, pour que ce soit plus realiste (la voiture ne peut pas faire un demi-tour sur place!)
+  ifelse dirCorrection > maxdir-ennemy [ ; limite a droite
+    set dirCorrection maxdir-ennemy
+  ]
+  [
+    if dirCorrection < maxdir-ennemy * -1 [ ; limite a gauche
+      set dirCorrection maxdir-ennemy * -1
+    ]
+  ]
+
+  ; On tourne
+  rt dirCorrection
+
+  ; Limite de vitesse pour les voitures-cortege (pour pas qu'elles ne rentrent dans la voiture leader)
+  let tmp-speed speed
+  if slowdown? [
+    if distance-nowrap goal - safe-distance < 1.1 [
+      set tmp-speed tmp-speed / 20
+    ]
+    if distance-nowrap goal - safe-distance < 0.9 [
+      set tmp-speed 0
+    ]
+  ]
+
+  ; Deplacement
+  set pitch 0 ; make sure there's no pitch ever, else the car will disappear in the ground
+  fd tmp-speed ; Avance
+end
+
+
+to move-to-target-astar [goal]
+  if not empty? my-path [
+    let next-patch first my-path
+    let zz pzcor
+    set next-patch [patch-at 0 0 (zz - pzcor)] of next-patch ; mise a niveau de pzcor au cas ou le chemin a ete calculé sur un autre plan
+                                                             ; Deplacement vers le prochain waypoint
+    if next-patch != patch-here [move-ennemy next-patch false]
+    ; Si on a atteint ce patch, on le supprime de la liste, et on va donc continuer vers le prochain patch du chemin
+    if patch-here = next-patch [
+      set my-path remove-item 0 my-path
+      if debug [ show (word "Waypoint atteint: " patch-here ", prochain: " next-patch ) ]
+    ]
+  ]
+end
+
+; Decide d'un chemibn a suivre si l'ennemi a une cible
+to search-ways-for-enemies
+  foreach sort-on [who] turtle-set enemies with [target != nobody and not dead?] [
+    let id ([who] of ?)
+    if empty? [my-path] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
+                               ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
+      let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
+      let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [target] of ? false)
+      ask ? [ set my-path path ]
+    ]
+  ]
+end

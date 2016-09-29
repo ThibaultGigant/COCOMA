@@ -1,4 +1,9 @@
-__includes ["src/functions-astar.nls" "src/convois.nls" "src/functions-convois.nls" "src/enemies.nls" "src/BDI.nls"]
+__includes ["src/functions-astar.nls"
+            "src/convois.nls"
+            "src/functions-convois.nls"
+            "src/enemies.nls"
+            "src/BDI.nls"
+            "src/functions-ennemies.nls"]
 
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
@@ -424,7 +429,7 @@ SWITCH
 227
 astar-longpath
 astar-longpath
-0
+1
 1
 -1000
 
@@ -617,7 +622,7 @@ enemies-vision-radius
 enemies-vision-radius
 0
 100
-20
+21
 1
 1
 NIL
@@ -633,6 +638,21 @@ enemies-shoot-radius
 0
 20
 10
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+281
+485
+453
+518
+safe-distance
+safe-distance
+0
+30
+5
 1
 1
 NIL

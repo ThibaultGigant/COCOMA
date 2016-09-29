@@ -9,6 +9,9 @@ enemies-own [
   shoot-radius
   speed
   target
+  max-dir
+  my-path
+  dead?
 ]
 
 to setup-enemies
@@ -23,6 +26,8 @@ to setup-enemies
     set beliefs ([])
     set intentions ([])
     set target nobody
+    set my-path ([])
+    set dead? false
     
     ;; ASPECT
     set shape "truck"
@@ -52,11 +57,40 @@ to random-move
   ]
 end
 
+to random-move-nowrap
+  ;; Changement de cap
+  if random 100 < 1 [ lt random 90 - 45 ]
+  ;; Vérification du patch en mire
+  ifelse not (detect-obstacle-variable speed)
+    and abs (xcor - [pxcor] of patch-ahead speed) < speed + 1
+    and abs (ycor - [pycor] of patch-ahead speed) < speed + 1 [ 
+    fd speed
+  ]
+  [
+    rt random 90 - 45
+  ]
+end
+
+; Detection d'obstacles
+; sp  : taille de la zone de detection
+to-report detect-obstacle-variable [sp]
+; if any? other patches in-cone 10 60 with [obstacle?] [report true]
+ if any? other patches in-cone sp 60 with [obstacle?] [report true]
+; if any? other patches in-cone 10 90 [report true]
+; if any? other patches in-cone 3 270 [report true]
+ report false
+end
+
 to move-to-target
   face-nowrap target
   if distance target > enemies-shoot-radius / 2 and not [obstacle?] of patch-ahead speed [
     fd speed
   ]
+end
+
+to move-to-target-with-turn-speed
+  set genlongpath? false
+  move-ennemy target true
 end
 
 to detect-convois
@@ -71,13 +105,14 @@ end
 
 to move
   ;if carburant > 0 [
-  ifelse target = nobody [
-    random-move
+  ifelse target = nobody and empty? my-path [
+;    random-move
+    random-move-nowrap
   ]
   [
-    move-to-target
+;    move-to-target
+    move-to-target-astar target
   ]
-  ;]
   ;set carburant carburant - 1
 end
 
@@ -85,10 +120,18 @@ to shoot-convois-in-range
   
 end
 
-to enemies-think
+to enemies-think  
+  ; Decide d'un chemibn a suivre si l'ennemi a une cible
+  search-ways-for-enemies
+  
   ask enemies [
     move
     detect-convois
     shoot-convois-in-range
+    
+    ; coloration
+    ifelse target != nobody or not empty? my-path
+    [ set color blue ]
+    [ set color red - 2 ]
   ]
 end

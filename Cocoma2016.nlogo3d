@@ -3,7 +3,8 @@ __includes ["src/functions-astar.nls"
             "src/functions-convois.nls"
             "src/enemies.nls"
             "src/BDI.nls"
-            "src/functions-enemies.nls"]
+            "src/functions-enemies.nls"
+            "src/drones.nls"]
 
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
@@ -65,7 +66,7 @@ to setup
     ]
   ]
   if not debug and not debug-verbose [no-display]
-  ;setup-drones
+  setup-drones
   setup-enemies
   ;setup-citizens
 ;  setup-hq
@@ -256,6 +257,7 @@ end
 to go
   convois-think
   enemies-think
+  drones-think
   tick
   if all? convois [ finished? ] [ stop ] ; Si tout le monde est arrivé, on arrête
 end
@@ -300,7 +302,7 @@ GRAPHICS-WINDOW
 0
 70
 0
-0
+20
 1
 0
 1
@@ -512,10 +514,10 @@ A*
 1
 
 BUTTON
-97
-386
-160
-419
+99
+385
+162
+418
 NIL
 go
 T
@@ -568,7 +570,7 @@ INPUTBOX
 348
 115
 nb-enemies
-6
+3
 1
 0
 Number
@@ -653,6 +655,57 @@ safe-distance
 0
 30
 5
+1
+1
+NIL
+HORIZONTAL
+
+INPUTBOX
+352
+55
+418
+115
+nb-drones
+3
+1
+0
+Number
+
+TEXTBOX
+748
+383
+898
+401
+Drones
+11
+0.0
+1
+
+SLIDER
+748
+410
+920
+443
+max-alt-drones
+max-alt-drones
+0
+100
+15
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+749
+447
+921
+480
+min-alt-drones
+min-alt-drones
+0
+100
+7
 1
 1
 NIL
@@ -1001,7 +1054,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

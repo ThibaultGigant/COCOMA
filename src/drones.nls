@@ -1,0 +1,45 @@
+;; DRONES
+breed [drones drone]
+
+drones-own [
+  statu
+  max-alt
+  min-alt
+  speed
+]
+
+
+to setup-drones
+  create-drones nb-drones
+  ask drones [
+    ; Init apparence NetLogo
+    ;set shape "drone"
+    ;set color magenta
+    
+    ; Variables
+    set max-alt max-alt-drones + solAlt
+    set min-alt min-alt-drones + solAlt
+    set statu "enBase"
+    set speed 0.2 * simu-speed
+    
+    ; Position
+    move-to one-of patches with [ base? ]
+    set zcor solAlt
+  ]
+end
+
+to drones-think
+  move-drone
+end
+
+to move-drone
+  decollage
+end
+
+to decollage
+  ask drones with [ zcor < min-alt ] [
+    let newAlt zcor + speed
+    if newAlt > max-alt [ set newAlt max-alt ]
+    move-to patch xcor ycor newAlt
+  ]
+end

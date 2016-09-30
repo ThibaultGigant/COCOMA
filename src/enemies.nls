@@ -43,7 +43,7 @@ to setup-enemies
     ;    move-to patch ((max-pxcor - randx) * tmp) ((max-pycor - randy)*(1 - tmp)) 1
     
     ; move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar?]
-    move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = mapAlt ]
+    move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = solAlt ]
   ]
 end
 

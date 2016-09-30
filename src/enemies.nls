@@ -61,7 +61,7 @@ to random-move-nowrap
   ;; Changement de cap
   if random 100 < 1 [ lt random 90 - 45 ]
   ;; Vérification du patch en mire
-  ifelse not (detect-obstacle-variable speed)
+  ifelse not (detect-obstacles-ahead)
     and abs (xcor - [pxcor] of patch-ahead speed) < speed + 1
     and abs (ycor - [pycor] of patch-ahead speed) < speed + 1 [ 
     fd speed
@@ -71,26 +71,24 @@ to random-move-nowrap
   ]
 end
 
-; Detection d'obstacles
-; sp  : taille de la zone de detection
-to-report detect-obstacle-variable [sp]
-; if any? other patches in-cone 10 60 with [obstacle?] [report true]
- if any? other patches in-cone sp 60 with [obstacle?] [report true]
-; if any? other patches in-cone 10 90 [report true]
-; if any? other patches in-cone 3 270 [report true]
- report false
-end
-
 to move-to-target
   face-nowrap target
   if distance target > enemies-shoot-radius / 2 and not [obstacle?] of patch-ahead speed [
+    set color red - 2
     fd speed
+    ;move-enemy patch-ahead speed
   ]
+  if detect-obstacles-ahead
+  [ set color blue
+    move-to-target-astar target ]
+end
+
+to-report detect-obstacles-ahead
+  report [obstacle?] of patch-ahead speed
 end
 
 to move-to-target-with-turn-speed
-  set genlongpath? false
-  move-ennemy target true
+  move-enemy target
 end
 
 to detect-convois
@@ -105,13 +103,13 @@ end
 
 to move
   ;if carburant > 0 [
-  ifelse target = nobody and empty? my-path [
+  ifelse target = nobody [
 ;    random-move
     random-move-nowrap
   ]
   [
-;    move-to-target
-    move-to-target-astar target
+    move-to-target
+;    move-to-target-astar target
   ]
   ;set carburant carburant - 1
 end
@@ -125,13 +123,70 @@ to enemies-think
   search-ways-for-enemies
   
   ask enemies [
-    move
     detect-convois
+    move
     shoot-convois-in-range
-    
-    ; coloration
-    ifelse target != nobody or not empty? my-path
-    [ set color blue ]
-    [ set color red - 2 ]
+  ]
+end
+
+; TODO gerer le maxdir-enemy ?
+to move-enemy [goal]
+  let maxdir-enemy 45
+
+  ; Calcule de l'angle avec la cible
+  ;let headingFlag heading
+  let headingFlag (towards-nowrap goal)
+  let dirCorrection subtract-headings headingFlag heading
+  
+  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
+  set dirCorrection precision dirCorrection 2
+  
+  ; Limite de l'angle, pour que ce soit plus realiste (la voiture ne peut pas faire un demi-tour sur place!)
+  ifelse dirCorrection > maxdir-enemy [ ; limite a droite
+    set dirCorrection maxdir-enemy
+  ]
+  [
+    if dirCorrection < maxdir-enemy * -1 [ ; limite a gauche
+      set dirCorrection maxdir-enemy * -1
+    ]
+  ]
+
+  ; On tourne
+  rt dirCorrection
+
+  ; Deplacement
+  set pitch 0 ; make sure there's no pitch ever, else the car will disappear in the ground
+  fd speed ; Avance
+end
+
+
+to move-to-target-astar [goal]
+  if not empty? my-path [
+    let next-patch first my-path
+    let zz pzcor
+    set next-patch [patch-at 0 0 (zz - pzcor)] of next-patch ; mise a niveau de pzcor au cas ou le chemin a ete calculé sur un autre plan
+                                                             ; Deplacement vers le prochain waypoint
+    if next-patch != patch-here [move-enemy next-patch]
+    ; Si on a atteint ce patch, on le supprime de la liste, et on va donc continuer vers le prochain patch du chemin
+    if patch-here = next-patch [
+      set my-path remove-item 0 my-path
+      if debug [ show (word "Waypoint atteint: " patch-here ", prochain: " next-patch ) ]
+    ]
+  ]
+end
+
+; Decide d'un chemibn a suivre si l'ennemi a une cible
+to search-ways-for-enemies
+  foreach sort-on [who] turtle-set enemies with [target != nobody and not dead? and detect-obstacles-ahead] [
+    let id ([who] of ?)
+    if empty? [my-path] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
+                               ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
+      let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
+      let tmp astar-longpath
+      set astar-longpath false
+      let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [target] of ? false)
+      set astar-longpath tmp
+      ask ? [ set my-path path ]
+    ]
   ]
 end

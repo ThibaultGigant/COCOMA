@@ -3,7 +3,7 @@ __includes ["src/functions-astar.nls"
             "src/functions-convois.nls"
             "src/enemies.nls"
             "src/BDI.nls"
-            "src/functions-ennemies.nls"]
+            "src/functions-enemies.nls"]
 
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
@@ -429,7 +429,7 @@ SWITCH
 227
 astar-longpath
 astar-longpath
-1
+0
 1
 -1000
 
@@ -568,7 +568,7 @@ INPUTBOX
 348
 115
 nb-enemies
-3
+6
 1
 0
 Number
@@ -1001,7 +1001,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

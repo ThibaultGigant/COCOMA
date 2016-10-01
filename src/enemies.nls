@@ -185,12 +185,12 @@ to-report detect-obstacles-enemy-target
   face-nowrap target
   
   ; Vérification que les patchs entre la turtle et le patch visé ne sont pas des obstacles
-  let tmp 0.05
+  let tmp 1
   let tmpbool false
   while [ tmp <= distance target and tmpbool = false ]
   [
     set tmpbool [obstacle?] of patch-ahead tmp
-    set tmp tmp + 0.05
+    set tmp tmp + 1
   ]
   
   set heading headingFlag

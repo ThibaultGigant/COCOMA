@@ -476,7 +476,7 @@ simu-speed
 simu-speed
 0
 10
-4
+3
 1
 1
 NIL
@@ -569,7 +569,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+3
 1
 0
 Number

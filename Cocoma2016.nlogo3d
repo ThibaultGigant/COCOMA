@@ -302,7 +302,7 @@ GRAPHICS-WINDOW
 0
 70
 0
-20
+3
 1
 0
 1
@@ -347,7 +347,7 @@ INPUTBOX
 70
 115
 nb-cars
-6
+3
 1
 0
 Number
@@ -570,7 +570,7 @@ INPUTBOX
 348
 115
 nb-enemies
-3
+0
 1
 0
 Number
@@ -690,7 +690,7 @@ max-alt-drones
 max-alt-drones
 0
 100
-15
+2
 1
 1
 NIL
@@ -705,7 +705,7 @@ min-alt-drones
 min-alt-drones
 0
 100
-7
+2
 1
 1
 NIL

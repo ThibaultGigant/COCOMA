@@ -20,7 +20,7 @@ to setup-drones
     set max-alt max-alt-drones + solAlt
     set min-alt min-alt-drones + solAlt
     set statu "enBase"
-    set speed 0.2 * simu-speed
+    set speed 0.02 * simu-speed
     
     ; Position
     move-to one-of patches with [ base? ]
@@ -39,7 +39,7 @@ end
 to decollage
   ask drones with [ zcor < min-alt ] [
     let newAlt zcor + speed
-    if newAlt > max-alt [ set newAlt max-alt ]
+    if newAlt > min-alt [ set newAlt min-alt ]
     move-to patch xcor ycor newAlt
   ]
 end

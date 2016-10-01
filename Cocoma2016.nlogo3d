@@ -3,7 +3,6 @@ __includes ["src/functions-astar.nls"
             "src/functions-convois.nls"
             "src/enemies.nls"
             "src/BDI.nls"
-            "src/functions-enemies.nls"
             "src/drones.nls"]
 
 breed [waypoints waypoint]
@@ -464,7 +463,7 @@ SWITCH
 316
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -477,7 +476,7 @@ simu-speed
 simu-speed
 0
 10
-1
+4
 1
 1
 NIL
@@ -624,7 +623,7 @@ enemies-vision-radius
 enemies-vision-radius
 0
 100
-21
+100
 1
 1
 NIL
@@ -639,7 +638,7 @@ enemies-shoot-radius
 enemies-shoot-radius
 0
 20
-10
+5
 1
 1
 NIL
@@ -1054,7 +1053,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

@@ -136,9 +136,10 @@ to suivi-drones
       search-convoi-drones
     ]
     if convoi-suivi != nobody [
-      ; Rotation
-      rotate-drone convoi-suivi
-      
+      if not distance-min-drones [
+        ; Rotation
+        rotate-drone convoi-suivi
+      ]
       ; Déplacement
       if distance-nowrap convoi-suivi > drones-suivi-radius [ fd-drones speed ]
     ]
@@ -263,8 +264,36 @@ to fd-drones [ sp ]
   ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
     fd sp
   ]
-  [ if [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
+  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
       fd sp - 5
     ]
+    [
+      ifelse heading >= 180 [ rt 10 ]
+      [ lt 10 ]
+    ]
   ]
+end
+
+to-report distance-min-drones
+  ; Calcul de l'angle avec la cible
+  let other-drone first sort-on [distance-nowrap myself] other drones
+  if [distance myself] of other-drone > min-distance-drones [ report false ]
+  
+  ; Si le drone se trouve au même endroit que l'autre drone (modulo l'altitude)
+  if [xcor] of other-drone = xcor and [ycor] of other-drone = ycor [
+       report false
+  ]
+  let headingFlag (towards-nowrap other-drone)
+  let dirCorrection subtract-headings headingFlag heading
+  
+  
+  if dirCorrection < 120 and dirCorrection > 0[
+    lt 10
+    fd-drones speed
+  ]
+  if dirCorrection > -120 and dirCorrection < 0[
+    rt 10
+    fd-drones speed
+  ]
+  report true
 end

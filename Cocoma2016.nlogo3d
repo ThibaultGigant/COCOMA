@@ -267,6 +267,7 @@ to reset
   clear-turtles
   setup-convois
   setup-enemies
+  setup-drones
   let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) false)
   set as-path replace-item 0 as-path start-path
 end
@@ -476,7 +477,7 @@ simu-speed
 simu-speed
 0
 10
-3
+5
 1
 1
 NIL
@@ -548,9 +549,9 @@ NIL
 
 BUTTON
 99
-427
+426
 211
-460
+459
 NIL
 split
 NIL
@@ -569,7 +570,7 @@ INPUTBOX
 348
 115
 nb-enemies
-3
+0
 1
 0
 Number
@@ -705,6 +706,51 @@ min-alt-drones
 0
 100
 2
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+924
+410
+1096
+443
+drones-vision-radius
+drones-vision-radius
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+924
+447
+1096
+480
+max-fuel-drones
+max-fuel-drones
+0
+100
+73
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+748
+483
+920
+516
+drones-suivi-radius
+drones-suivi-radius
+0
+100
+7
 1
 1
 NIL
@@ -1053,7 +1099,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

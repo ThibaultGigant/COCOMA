@@ -1,13 +1,59 @@
-;; DRONES
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Drones related code ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;
+
 breed [drones drone]
 
 drones-own [
+  ;; Statut du drone
+  ;; ---
+  ;; • Base             : Le drone est à la base
+  ;; • Suivi            : Le drone suit le convoi
+  ;; • Rapatriement     : Le drone n'a plus assez de carburant
+  ;; • OutOfFuel        : Plus de fuel, ni de moyen de se ravitailler
   statu
+  
+  ;; • dead?            : Vitalité du drone
+  ;; • vision-radius    : Taille du champs de vision
+  dead?
+  vision-radius
+
+  ;; Suivi
+  ;; ---
+  ;; • convoi-suivi     : Convoi que le drone suit et protège
+  convoi-suivi
+  
+  ;; Rapatriement
+  ;; ---
+  ;; • base-patch       : Position de la base
+  ;; • last-statu       : Statu avant le rapatriement
+  base-patch
+  last-statu
+
+  ;; Déplacement
+  ;; ---
+  ;; • speed            : Vitesse du drone
+  ;; • max-dir          : Rotation maximale par tick
+  ;; • max-alt          : Altitude de vol maximale
+  ;; • min-alt          : Altitude de vol minimale
+  speed
+  max-dir
   max-alt
   min-alt
-  speed
+  
+  ;; Carburant
+  ;; ---
+  ;; • fuel             : Carburant restant
+  ;; • max-fuel         : Taille du réservoire
+  ;; • pourcentage-sec. : Pourcentage de fuel suplémentaire estimé comme nécessaire pour un Rapatriement
+  fuel
+  max-fuel
+  pourcentage-securite-fuel-drones
 ]
 
+;;;;;;;;;;;
+;; SETUP ;;
+;;;;;;;;;;;
 
 to setup-drones
   create-drones nb-drones
@@ -16,30 +62,209 @@ to setup-drones
     ;set shape "drone"
     ;set color magenta
     
-    ; Variables
+    ;; Variables
+    ;; ---
+    ;; Statut du drone
+    set statu "enBase"
+    set last-statu "enBase"
+    set dead? false
+    set vision-radius drones-vision-radius
+    
+    ;; Suivi
+    set convoi-suivi nobody
+    
+    ;; Deplacement
+    set speed 0.05 * simu-speed
+    set max-dir 10 * simu-speed
     set max-alt max-alt-drones + solAlt
     set min-alt min-alt-drones + solAlt
-    set statu "enBase"
-    set speed 0.02 * simu-speed
     
-    ; Position
+    ;; Carburant                             --- Plusieurs modèles de drones avec des caractéristiques pré-définis ?
+    set fuel max-fuel-drones
+    set max-fuel max-fuel-drones
+    set pourcentage-securite-fuel-drones 0.1
+    
+    ;; Placement
     move-to one-of patches with [ base? ]
     set zcor solAlt
   ]
 end
 
-to drones-think
-  move-drone
-end
+;;;;;;;;;;
+;; MOVE ;;
+;;;;;;;;;;
 
 to move-drone
-  decollage
+  take-off-drones
+  suivi-drones
+  rapatriement-drones
+  landing-drones
 end
 
-to decollage
-  ask drones with [ zcor < min-alt ] [
+; Fait aterrire les drones
+to landing-drones
+  ask drones with [ statu = "Rapatriement" and distance-nowrap base-patch < max-Alt + 1 and zcor > solAlt ] [
+    let newAlt zcor - speed
+    ifelse newAlt > solAlt [
+      let last-pitch pitch
+      set pitch -90
+      fd-drones speed
+      set pitch last-pitch
+    ]
+    [ move-to patch xcor ycor solAlt ]
+    if newAlt <= solAlt [ set statu "Base" ]
+  ]
+end
+
+; Fait décoller les drones
+to take-off-drones
+  ask drones with [ statu != "Rapatriement" and zcor < min-Alt ] [
     let newAlt zcor + speed
-    if newAlt > min-alt [ set newAlt min-alt ]
-    move-to patch xcor ycor newAlt
+    ifelse newAlt < max-alt [
+      let last-pitch pitch
+      set pitch 90
+      fd-drones speed
+      set pitch last-pitch
+    ]
+    [ set statu "Suivi" ]
+  ]
+end
+
+to suivi-drones
+  ask drones with [ statu = "Suivi" ] [
+    if convoi-suivi = nobody [
+      search-convoi-drones
+    ]
+    if convoi-suivi != nobody [
+      ; Rotation
+      rotate-drone convoi-suivi
+      
+      ; Déplacement
+      if distance-nowrap convoi-suivi > drones-suivi-radius [ fd-drones speed ]
+    ]
+  ]
+end
+
+to search-convoi-drones
+  let targets convois in-radius-nowrap vision-radius
+  ifelse count targets = 0 [
+    set convoi-suivi nobody
+  ]
+  [
+    set convoi-suivi first sort-on [distance-nowrap myself] targets
+  ]
+end
+
+;; Rapatriement
+;; ---
+;; Doit-on garder en mémoire la direction de la base,
+;; ou doit-on considérer que les drones connaissent
+;; l'emplacement exacte de la base en tout temps ?
+to rapatriement-drones
+  ask drones with [ statu = "Rapatriement" ] [
+    if not at-base-drones [
+      rotate-drone base-patch
+      ;ifelse [distance-nowrap myself] of base-patch < speed / 2 [ fd-drones speed / 5 ]
+      fd-drones min (list speed ([distance-nowrap myself] of base-patch / 20))
+    ]
+  ]
+end
+
+to check-fuel-drones
+  ask drones with [ statu != "OutOfFuel" and fuel <= 0 and not at-base-drones ] [
+    set statu "OutOfFuel"
+    set color yellow
+  ]
+  
+  ask drones with [ statu = "OutOfFuel" and zcor > solAlt + 1 ] [
+    set zcor solAlt
+  ]
+  
+  ask drones with [ statu != "Rapatriement" and statu != "OutOfFuel" and not dead? ] [
+    ;; Le patch de la base la plus proche
+    let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
+    
+    ;; Vérification du carburant restant                                           --- distance-nowrap euclidienne ou de Manhattan ?
+    if (fuel + pourcentage-securite-fuel-drones * fuel) < (abs ([pxcor] of tmp - xcor ) + abs ([pycor] of tmp - ycor )) [
+    ;if (fuel + pourcentage-securite-fuel-drones * fuel) < [distance-nowrap myself] of tmp * speed [
+      set last-statu statu
+      set statu "Rapatriement"
+      set base-patch tmp
+    ]
+  ]
+end
+
+; Chargement du carburant
+to reload-drones
+  ask drones with [ statu = "Base" ] [
+    set fuel max-fuel
+    set statu last-statu
+    set color red
+  ]
+end
+
+to drones-think
+  
+  ask drones [
+    show statu
+  ]
+  
+  ;; Pour les drones à la base
+  reload-drones
+  
+  ;; Vérification du carburant
+  check-fuel-drones
+  
+  
+  ask drones with [ not dead? and fuel > 0 ] [
+    move-drone
+    set fuel fuel - speed
+  ]
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fonctions diverses ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+to rotate-drone [ goal ]
+  ; Si le drone se trouve à l'endroit souhaité (modulo l'altitude)
+  if is-turtle? goal and [xcor] of goal = xcor and [ycor] of goal = ycor or 
+     is-patch? goal and [pxcor] of goal = xcor and [pycor] of goal = ycor [
+       stop
+  ]
+  
+  ; Calcul de l'angle avec la cible
+  let headingFlag (towards-nowrap goal)
+  let dirCorrection subtract-headings headingFlag heading
+  
+  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
+  set dirCorrection precision dirCorrection 2
+  
+  ; Limite de l'angle, pour que ce soit plus realiste
+  ifelse dirCorrection > max-dir [ ; limite a droite
+    set dirCorrection max-dir
+  ]
+  [
+    if dirCorrection < max-dir * -1 [ ; limite a gauche
+      set dirCorrection max-dir * -1
+    ]
+  ]
+  
+  ; On tourne
+  rt dirCorrection
+end
+
+to-report at-base-drones
+  report abs ([pxcor] of base-patch - xcor ) + abs ([pycor] of base-patch - ycor ) < 1
+  ;report min [distance-nowrap myself] of patches with [ base? ] <= 1
+end
+
+to fd-drones [ sp ]
+  ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
+    fd sp
+  ]
+  [ if [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
+      fd sp - 5
+    ]
   ]
 end

@@ -419,7 +419,7 @@ INPUTBOX
 637
 330
 astar-max-depth
-5000
+10000
 1
 0
 Number
@@ -464,7 +464,7 @@ SWITCH
 316
 astar-visu
 astar-visu
-1
+0
 1
 -1000
 
@@ -477,7 +477,7 @@ simu-speed
 simu-speed
 0
 10
-5
+2
 1
 1
 NIL
@@ -570,7 +570,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+3
 1
 0
 Number
@@ -1114,7 +1114,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

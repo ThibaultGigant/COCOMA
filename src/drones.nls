@@ -57,10 +57,12 @@ drones-own [
 
 to setup-drones
   create-drones nb-drones
+  ;load-shapes-3d "ressources/drone.nlshape"
   ask drones [
     ; Init apparence NetLogo
-    ;set shape "drone"
-    ;set color magenta
+    ;set shape "turtle"
+    ;set size size * 0.03
+    ;set color grey - 2
     
     ;; Variables
     ;; ---

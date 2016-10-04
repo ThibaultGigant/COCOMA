@@ -2,7 +2,8 @@ __includes ["src/functions-astar.nls"
             "src/convois.nls"
             "src/functions-convois.nls"
             "src/enemies.nls"
-            "src/BDI.nls"
+            "src/bdi.nls"
+            "src/communication.nls"
             "src/drones.nls"]
 
 breed [waypoints waypoint]
@@ -21,7 +22,6 @@ globals [mapAlt solAlt basseAlt hauteAlt ; variables topologiques Z discretise: 
   mission-completed? mission-failed?
   send-interval ; communication period
   is-movie-recording?
-  show-intentions
   show_messages
   ]
 
@@ -419,7 +419,7 @@ INPUTBOX
 637
 330
 astar-max-depth
-10000
+5000
 1
 0
 Number
@@ -477,7 +477,7 @@ simu-speed
 simu-speed
 0
 10
-2
+1
 1
 1
 NIL
@@ -624,7 +624,7 @@ enemies-vision-radius
 enemies-vision-radius
 0
 100
-100
+26
 1
 1
 NIL
@@ -648,7 +648,7 @@ HORIZONTAL
 SLIDER
 281
 485
-453
+495
 518
 safe-distance
 safe-distance
@@ -770,6 +770,32 @@ min-distance-drones
 1
 NIL
 HORIZONTAL
+
+SLIDER
+498
+486
+686
+519
+enemies-communication-radius
+enemies-communication-radius
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+459
+56
+630
+89
+show-intentions
+show-intentions
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?

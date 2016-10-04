@@ -12,7 +12,7 @@ enemies-own [
   vision-radius
   shoot-radius
   speed
-  target
+  ;target ;belief; 
   max-dir
   my-path
   dead?
@@ -38,7 +38,6 @@ to setup-enemies
     set max-dir 10 * simu-speed
     set beliefs ([])
     set intentions ([])
-    set target nobody
     set my-path ([])
     set dead? false
     
@@ -57,6 +56,8 @@ to setup-enemies
     
     ; move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar?]
     move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = solAlt ]
+    
+    add-intention "attack-convois" "false"
   ]
 end
 
@@ -110,10 +111,10 @@ to move-to-target
     move-to-target-astar
   ]
   [
-    rotate-enemy target
+    rotate-enemy get-belief-enemy "target"
     
     ; On avance
-    if distance target > enemies-shoot-radius / 3
+    if distance get-belief-enemy "target" > enemies-shoot-radius / 3
     [
       fd speed
     ]
@@ -121,7 +122,7 @@ to move-to-target
 end
 
 to move
-  ifelse target = nobody [
+  ifelse not exist-beliefs-of-type "target" [
     random-move-nowrap
   ]
   [
@@ -182,12 +183,12 @@ end
 to-report detect-obstacles-enemy-target
   ; on stocke le heading de la turtle pour la reset quand on a fini
   let headingFlag heading
-  face-nowrap target
+  face-nowrap get-belief-enemy "target"
   
   ; Vérification que les patchs entre la turtle et le patch visé ne sont pas des obstacles
   let tmp 1
   let tmpbool false
-  while [ tmp <= distance target and tmpbool = false ]
+  while [ tmp <= distance get-belief-enemy "target" and tmpbool = false ]
   [
     set tmpbool [obstacle?] of patch-ahead tmp
     set tmp tmp + 1
@@ -200,27 +201,31 @@ end
 to detect-convois
   let targets convois in-radius-nowrap enemies-vision-radius
   ifelse count targets = 0 [
-    set target nobody
+    if exist-beliefs-of-type "target"
+    [
+      remove-belief "target"
+    ]
   ]
   [
-    set target first sort-on [distance myself] targets
+    update-belief-enemy create-belief "target" (first sort-on [distance myself] targets)
   ]
 end
 
 ; Decide d'un chemin a suivre si l'ennemi a une cible
 to search-ways-for-enemies
-  foreach sort-on [who] turtle-set enemies with [target != nobody and not dead?] [
+  foreach sort-on [who] turtle-set enemies with [exist-beliefs-of-type "target" and not dead?] [
     let id ([who] of ?)
     let obstacle-ahead false
     ask enemy id [
       set obstacle-ahead detect-obstacles-enemy-target
     ]
-    if obstacle-ahead and empty? [my-path] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
-                                                  ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
+    if obstacle-ahead and empty? [my-path] of ?
+     and not [obstacle?] of [patch-here] of [get-belief-enemy "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
+                                                                    ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
       let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
       let tmp astar-longpath
       set astar-longpath false
-      let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [target] of ? false)
+      let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [get-belief-enemy "target"] of ? false)
       set astar-longpath tmp
       ask ? [ set my-path path ]
     ]
@@ -229,17 +234,38 @@ to search-ways-for-enemies
 end
 
 to enemies-think
-  ; Détection des convois à portée
-  ask enemies
-  [
-    detect-convois
-  ]
+;  ; Détection des convois à portée
+;  ask enemies
+;  [
+;    detect-convois
+;  ]
   
   ; Decide d'un chemin a suivre si l'ennemi a une cible
   search-ways-for-enemies
   
   ask enemies [
-    move
-    shoot-convois-in-range
+    execute-intentions
+;    move
+;    shoot-convois-in-range
   ]
+end
+
+to attack-convois
+   detect-convois
+   move
+   shoot-convois-in-range
+end
+
+to update-belief-enemy [bel]
+  ifelse exist-beliefs-of-type belief-type bel
+    [
+      update-belief bel
+    ]
+    [
+      add-belief bel
+    ]
+end
+
+to-report get-belief-enemy [b-type]
+  report belief-content read-first-belief-of-type b-type
 end

@@ -202,15 +202,10 @@ to reload-drones
   ask drones with [ statu = "Base" ] [
     set fuel max-fuel
     set statu last-statu
-    set color red
   ]
 end
 
 to drones-think
-  
-  ask drones [
-    show statu
-  ]
   
   ;; Pour les drones à la base
   reload-drones
@@ -267,10 +262,10 @@ to fd-drones [ sp ]
     fd sp
   ]
   [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
-      fd sp - 5
+      fd sp / 5
     ]
     [
-      ifelse heading >= 180 [ rt 10 ]
+      ifelse heading >= 180 [ rt 10 ] ;; PAS BON
       [ lt 10 ]
     ]
   ]

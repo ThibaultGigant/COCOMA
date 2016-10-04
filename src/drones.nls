@@ -12,21 +12,25 @@ drones-own [
   ;; • Rapatriement     : Le drone n'a plus assez de carburant
   ;; • OutOfFuel        : Plus de fuel, ni de moyen de se ravitailler
   statu
+  intentions
   
   ;; • dead?            : Vitalité du drone
   ;; • vision-radius    : Taille du champs de vision
   dead?
   vision-radius
 
-  ;; Suivi
+  ;; Beliefs
   ;; ---
-  ;; • convoi-suivi     : Convoi que le drone suit et protège
+  ;;   Suivi
+  ;;   ---
+  ;;   • convoi-suivi   : Convoi que le drone suit et protège
+  ;;   Rapatriement
+  ;;   ---
+  ;;   • base-patch       : Position de la base
+  ;;   • last-statu       : Statu avant le rapatriement
+  beliefs
+  ; à supprimer
   convoi-suivi
-  
-  ;; Rapatriement
-  ;; ---
-  ;; • base-patch       : Position de la base
-  ;; • last-statu       : Statu avant le rapatriement
   base-patch
   last-statu
 

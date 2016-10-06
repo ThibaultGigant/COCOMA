@@ -30,16 +30,34 @@ to setup-enemies
   
   ask enemies [
     ;; OWN VARIABLES
-    set munitions (average-munition-enemies - 5 + random 10)
+    
+    ;; Statut de l'ennemi
+    ;; ---
+    ;; • munitons             :  Nombre de munitions que possède l'ennemi
+    ;; • carburant            : Le drone suit le convoi
+    ;; • vision-radius        : Le drone n'a plus assez de carburant
+    ;; • shoot-radius         : Plus de fuel, ni de moyen de se ravitailler
+    ;; • speed                : Vitesse de déplacement de l'ennemi
+    ;; • max-dir              : Angle de rotation maximal par tour d'un ennemi
+    ;; • my-path              : Plus de fuel, ni de moyen de se ravitailler
+    ;; • dead?                : Plus de fuel, ni de moyen de se ravitailler
+    
+    ;; Variables pour BDI
+    ;; ---
+    ;; • beliefs              : Ensemble des croyances de l'ennemi
+    ;; • intentions           : Ensemble des intentions de l'ennemi
+    
+    set munitions (average-munition-enemies - 5 + random 10) ;;
     set carburant (average-carburant-enemies - 5 + random 10)
     set vision-radius enemies-vision-radius
     set shoot-radius enemies-shoot-radius
     set speed 0.05 * simu-speed
     set max-dir 10 * simu-speed
-    set beliefs ([])
-    set intentions ([])
     set my-path ([])
     set dead? false
+    
+    set beliefs ([])
+    set intentions ([])
     
     ;; ASPECT
     set shape "truck"
@@ -220,8 +238,8 @@ to search-ways-for-enemies
       set obstacle-ahead detect-obstacles-enemy-target
     ]
     if obstacle-ahead and empty? [my-path] of ?
-     and not [obstacle?] of [patch-here] of [get-belief-enemy "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
-                                                                    ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
+    and not [obstacle?] of [patch-here] of [get-belief-enemy "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
+                                                                              ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
       let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
       let tmp astar-longpath
       set astar-longpath false
@@ -234,26 +252,26 @@ to search-ways-for-enemies
 end
 
 to enemies-think
-;  ; Détection des convois à portée
-;  ask enemies
-;  [
-;    detect-convois
-;  ]
+  ;  ; Détection des convois à portée
+  ;  ask enemies
+  ;  [
+  ;    detect-convois
+  ;  ]
   
   ; Decide d'un chemin a suivre si l'ennemi a une cible
   search-ways-for-enemies
   
   ask enemies [
     execute-intentions
-;    move
-;    shoot-convois-in-range
+    ;    move
+    ;    shoot-convois-in-range
   ]
 end
 
 to attack-convois
-   detect-convois
-   move
-   shoot-convois-in-range
+  detect-convois
+  move
+  shoot-convois-in-range
 end
 
 to update-belief-enemy [bel]

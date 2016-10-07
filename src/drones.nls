@@ -7,15 +7,17 @@ breed [drones drone]
 drones-own [
   ;; Statut du drone
   ;; ---
-  ;; • Base             : Le drone est à la base
-  ;; • Suivi            : Le drone suit le convoi
-  ;; • Rapatriement     : Le drone n'a plus assez de carburant
-  ;; • OutOfFuel        : Plus de fuel, ni de moyen de se ravitailler
+  ;; • statu                     : Le poste que doit tenir le drone parmis
+  ;;    • protect-convoi         : Le drone protege un convoie
+  ;;
+  ;; • intentions                : Liste des intentions du drone, pour la BDI
+  ;; • flag-end-of-intention     : Booléen, état de l'intention en cours (actif ou non)
   statu
   intentions
+  flag-end-of-intention
   
-  ;; • dead?            : Vitalité du drone
-  ;; • vision-radius    : Taille du champs de vision
+  ;; • dead?                     : Vitalité du drone
+  ;; • vision-radius             : Taille du champs de vision
   dead?
   vision-radius
 
@@ -23,11 +25,11 @@ drones-own [
   ;; ---
   ;;   Suivi
   ;;   ---
-  ;;   • convoi-suivi   : Convoi que le drone suit et protège
+  ;;   • convoi-suivi            : Convoi que le drone suit et protège
   ;;   Rapatriement
   ;;   ---
-  ;;   • base-patch       : Position de la base
-  ;;   • last-statu       : Statu avant le rapatriement
+  ;;   • base-patch              : Position de la base
+  ;;   • last-statu              : Statu avant le rapatriement
   beliefs
   ; à supprimer
   convoi-suivi
@@ -71,13 +73,27 @@ to setup-drones
     ;; Variables
     ;; ---
     ;; Statut du drone
-    set statu "enBase"
-    set last-statu "enBase"
+    set statu "protect-convoi"
+    set intentions ([])
+    set flag-end-of-intention "false"
+    
     set dead? false
     set vision-radius drones-vision-radius
     
-    ;; Suivi
-    set convoi-suivi nobody
+    ;; Beliefs
+    ;; ---
+    ;;   Suivi
+    ;;   ---
+    ;;   • convoi-suivi   : Convoi que le drone suit et protège
+    ;;   Rapatriement
+    ;;   ---
+    ;;   • base-patch       : Position de la base
+    ;;   • last-statu       : Statu avant le rapatriement
+    set beliefs ([])
+    update-belief-enemy create-belief "convoi-suivi" nobody
+    
+    update-belief-enemy create-belief "base-patch" nobody
+    update-belief-enemy create-belief "last-statu" "enBase"
     
     ;; Deplacement
     set speed 0.05 * simu-speed
@@ -93,6 +109,9 @@ to setup-drones
     ;; Placement
     move-to one-of patches with [ base? ]
     set zcor solAlt
+    
+    ;; Stratégie
+    add-intention "take-off-drones" is-end-of-intention
   ]
 end
 
@@ -101,15 +120,15 @@ end
 ;;;;;;;;;;
 
 to move-drone
-  take-off-drones
-  suivi-drones
+  take-off-drones-noBDI
+  suivi-drones-noBDI
   rapatriement-drones
-  landing-drones
+  landing-drones-noBDI
 end
 
 ; Fait aterrire les drones
-to landing-drones
-  ask drones with [ statu = "Rapatriement" and distance-nowrap base-patch < max-Alt + 1 and zcor > solAlt ] [
+to landing-drones-noBDI
+  ask drones with [ statu = "Rapatriement" and distance-nowrap get-belief-drones "base-patch" < max-Alt + 1 and zcor > solAlt ] [
     let newAlt zcor - speed
     ifelse newAlt > solAlt [
       let last-pitch pitch
@@ -123,7 +142,7 @@ to landing-drones
 end
 
 ; Fait décoller les drones
-to take-off-drones
+to take-off-drones-noBDI
   ask drones with [ statu != "Rapatriement" and zcor < min-Alt ] [
     let newAlt zcor + speed
     ifelse newAlt < max-alt [
@@ -136,29 +155,43 @@ to take-off-drones
   ]
 end
 
-to suivi-drones
+to suivi-drones-noBDI
   ask drones with [ statu = "Suivi" ] [
-    if convoi-suivi = nobody [
+    if get-belief-drones "convoi-suivi" = nobody [
       search-convoi-drones
     ]
-    if convoi-suivi != nobody [
+    if get-belief-drones "convoi-suivi" != nobody [
       if not distance-min-drones [
         ; Rotation
-        rotate-drone convoi-suivi
+        rotate-drone get-belief-drones "convoi-suivi"
       ]
       ; Déplacement
-      if distance-nowrap convoi-suivi > drones-suivi-radius [ fd-drones speed ]
+      if distance-nowrap get-belief-drones "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
     ]
+  ]
+end
+
+to suivi-convoi-drones
+  if get-belief-drones "convoi-suivi" = nobody [
+    search-convoi-drones
+  ]
+  if get-belief-drones "convoi-suivi" != nobody [
+    if not distance-min-drones [
+      ; Rotation
+      rotate-drone get-belief-drones "convoi-suivi"
+    ]
+    ; Déplacement
+    if distance-nowrap get-belief-drones "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
   ]
 end
 
 to search-convoi-drones
   let targets convois in-radius-nowrap vision-radius
   ifelse count targets = 0 [
-    set convoi-suivi nobody
+    update-belief-drones create-belief "convoi-suivi" nobody
   ]
   [
-    set convoi-suivi first sort-on [distance-nowrap myself] targets
+    update-belief-drones create-belief "convoi-suivi" first sort-on [distance-nowrap myself] targets
   ]
 end
 
@@ -170,14 +203,14 @@ end
 to rapatriement-drones
   ask drones with [ statu = "Rapatriement" ] [
     if not at-base-drones [
-      rotate-drone base-patch
-      ;ifelse [distance-nowrap myself] of base-patch < speed / 2 [ fd-drones speed / 5 ]
-      fd-drones min (list speed ([distance-nowrap myself] of base-patch / 20))
+      rotate-drone get-belief-drones "base-patch"
+      ;ifelse [distance-nowrap myself] of (get-belief-drones "base-patch") < speed / 2 [ fd-drones speed / 5 ]
+      fd-drones min (list speed ([distance-nowrap myself] of (get-belief-drones "base-patch") / 20))
     ]
   ]
 end
 
-to check-fuel-drones
+to check-fuel-drones-noBDI
   ask drones with [ statu != "OutOfFuel" and fuel <= 0 and not at-base-drones ] [
     set statu "OutOfFuel"
     set color yellow
@@ -194,34 +227,136 @@ to check-fuel-drones
     ;; Vérification du carburant restant                                           --- distance-nowrap euclidienne ou de Manhattan ?
     if (fuel + pourcentage-securite-fuel-drones * fuel) < (abs ([pxcor] of tmp - xcor ) + abs ([pycor] of tmp - ycor )) [
     ;if (fuel + pourcentage-securite-fuel-drones * fuel) < [distance-nowrap myself] of tmp * speed [
-      set last-statu statu
+      update-belief-drones create-belief "last-statu" statu
       set statu "Rapatriement"
-      set base-patch tmp
+      update-belief-drones create-belief "base-patch" tmp
+;      set base-patch tmp
     ]
   ]
 end
 
+to check-fuel-drones
+  ;; Le patch de la base la plus proche
+  let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
+  
+  ;; Vérification du carburant restant
+  if (fuel + pourcentage-securite-fuel-drones * fuel) < (abs ([pxcor] of tmp - xcor ) + abs ([pycor] of tmp - ycor )) [
+    ;; Le drone garde en mémoire la place de la base la plus proche
+    update-belief-drones create-belief "base-patch" tmp
+    
+    ;; Fin du comportement principal, le drone doit se ravitailler
+    let this-intention get-intention
+    add-intention "ravitaillement-drones" is-end-of-intention
+    remove-intention this-intention
+    set flag-end-of-intention "true" ]
+end
+
 ; Chargement du carburant
-to reload-drones
+to reload-drones-noBDI
   ask drones with [ statu = "Base" ] [
     set fuel max-fuel
-    set statu last-statu
+    set statu get-belief-drones "last-statu"
   ]
 end
 
 to drones-think
   
   ;; Pour les drones à la base
-  reload-drones
+  ;reload-drones
   
   ;; Vérification du carburant
-  check-fuel-drones
-  
+  ;check-fuel-drones
   
   ask drones with [ not dead? and fuel > 0 ] [
-    move-drone
+    execute-intentions
     set fuel fuel - speed
+    show intentions
   ]
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Comportement (Behaviours / Intentions) ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Décollage du drone
+to take-off-drones
+  set flag-end-of-intention "false"
+  
+  ;; Calcul de la nouvelle altitude visée
+  let newAlt zcor + speed
+  
+  ifelse newAlt < max-alt [
+    ;; Le drone monte
+    let last-pitch pitch
+    set pitch 90
+    fd-drones speed
+    set pitch last-pitch
+    
+    ;; Perte de carburant
+  ];set fuel fuel - speed * puissance-moteur-drones ]
+  
+  ;; Fin du décollage, le drone reprend son comportement principal
+  [ let this-intention get-intention
+    add-intention statu "false"
+    remove-intention this-intention
+    set flag-end-of-intention "true" ]
+end
+
+;; Aterrissage du drone
+to landing
+  set flag-end-of-intention "false"
+  
+  ;; Calcul de la nouvelle altitude visée
+  let newAlt zcor - speed
+  
+  ifelse newAlt > solAlt [
+    ;; Le drone descend
+    let last-pitch pitch
+    set pitch -90
+    fd-drones speed
+    set pitch last-pitch
+  ]
+
+  ;; Fin de l'aterrissage
+  [ move-to patch xcor ycor solAlt 
+    let this-intention get-intention
+    add-intention "reload-drones" "false"
+    remove-intention this-intention
+    set flag-end-of-intention "true" ]
+end
+
+;; Rechargement du fuel
+to reload-drones
+  set flag-end-of-intention "false"
+  if fuel < max-fuel
+  [ set fuel min (list max-fuel (fuel + loading-speed-fuel)) ]
+  if fuel = max-fuel 
+  [ let this-intention get-intention
+    add-intention "take-off-drones" "false"
+    remove-intention this-intention
+    set flag-end-of-intention "true" ]
+end
+
+;; Suivi et protection de convoi
+to protect-convoi
+  set flag-end-of-intention "false"
+  
+  suivi-convoi-drones
+  
+  check-fuel-drones
+end
+
+;; Retour à la base pour le ravitaillement en carburant
+to ravitaillement-drones
+  set flag-end-of-intention "false"
+  ifelse not at-base-drones [
+    rotate-drone get-belief-drones "base-patch"
+    fd-drones min (list speed ([distance-nowrap myself] of (get-belief-drones "base-patch") / 20))
+  ]
+  [ let this-intention get-intention
+    add-intention "landing" "false"
+    remove-intention this-intention
+    set flag-end-of-intention "true" ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -257,7 +392,7 @@ to rotate-drone [ goal ]
 end
 
 to-report at-base-drones
-  report abs ([pxcor] of base-patch - xcor ) + abs ([pycor] of base-patch - ycor ) < 1
+  report abs ([pxcor] of get-belief-drones "base-patch" - xcor ) + abs ([pycor] of get-belief-drones "base-patch" - ycor ) < 1
   ;report min [distance-nowrap myself] of patches with [ base? ] <= 1
 end
 
@@ -276,6 +411,7 @@ to fd-drones [ sp ]
 end
 
 to-report distance-min-drones
+  if count drones < 2 [ report true ]
   ; Calcul de l'angle avec la cible
   let other-drone first sort-on [distance-nowrap myself] other drones
   if [distance myself] of other-drone > min-distance-drones [ report false ]
@@ -297,4 +433,26 @@ to-report distance-min-drones
     fd-drones speed
   ]
   report true
+end
+
+to-report is-end-of-intention
+  report flag-end-of-intention
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fonctions pour les Beliefs ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to update-belief-drones [bel]
+  ifelse exist-beliefs-of-type belief-type bel
+    [
+      update-belief bel
+    ]
+    [
+      add-belief bel
+    ]
+end
+
+to-report get-belief-drones [b-type]
+  report belief-content read-first-belief-of-type b-type
 end

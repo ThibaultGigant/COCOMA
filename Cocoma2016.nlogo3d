@@ -477,7 +477,7 @@ simu-speed
 simu-speed
 0
 10
-1
+4
 1
 1
 NIL
@@ -570,7 +570,7 @@ INPUTBOX
 348
 115
 nb-enemies
-3
+0
 1
 0
 Number
@@ -735,7 +735,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-143
+67
 1
 1
 NIL
@@ -796,6 +796,36 @@ show-intentions
 1
 1
 -1000
+
+SLIDER
+749
+518
+920
+551
+puissance-moteur-drones
+puissance-moteur-drones
+0
+100
+8
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+925
+520
+1097
+553
+loading-speed-fuel
+loading-speed-fuel
+0
+100
+100
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1140,7 +1170,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

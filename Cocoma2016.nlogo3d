@@ -570,7 +570,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+3
 1
 0
 Number
@@ -666,7 +666,7 @@ INPUTBOX
 418
 115
 nb-drones
-3
+0
 1
 0
 Number

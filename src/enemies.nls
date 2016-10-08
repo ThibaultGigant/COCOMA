@@ -5,17 +5,31 @@
 breed [enemies enemy]
 
 enemies-own [
-  beliefs
-  intentions
+  ;; Statut de l'ennemi
+  ;; ---
+  ;; • munitons             :  Nombre de munitions que possède l'ennemi
+  ;; • carburant            : Le drone suit le convoi
+  ;; • vision-radius        : Le drone n'a plus assez de carburant
+  ;; • shoot-radius         : Plus de fuel, ni de moyen de se ravitailler
+  ;; • speed                : Vitesse de déplacement de l'ennemi
+  ;; • max-dir              : Angle de rotation maximal par tour d'un ennemi
+  ;; • my-path              : Plus de fuel, ni de moyen de se ravitailler
+  ;; • dead?                : Plus de fuel, ni de moyen de se ravitailler
   munitions
   carburant
   vision-radius
   shoot-radius
   speed
-  ;target ;belief; 
   max-dir
   my-path
   dead?
+  
+  ;; Variables pour BDI
+  ;; ---
+  ;; • beliefs              : Ensemble des croyances de l'ennemi
+  ;; • intentions           : Ensemble des intentions de l'ennemi
+  beliefs
+  intentions
 ]
 
 
@@ -29,25 +43,9 @@ to setup-enemies
   create-enemies nb-enemies
   
   ask enemies [
-    ;; OWN VARIABLES
-    
-    ;; Statut de l'ennemi
+    ;; INITIALISATION des variabes que possède chaque ennemi
     ;; ---
-    ;; • munitons             :  Nombre de munitions que possède l'ennemi
-    ;; • carburant            : Le drone suit le convoi
-    ;; • vision-radius        : Le drone n'a plus assez de carburant
-    ;; • shoot-radius         : Plus de fuel, ni de moyen de se ravitailler
-    ;; • speed                : Vitesse de déplacement de l'ennemi
-    ;; • max-dir              : Angle de rotation maximal par tour d'un ennemi
-    ;; • my-path              : Plus de fuel, ni de moyen de se ravitailler
-    ;; • dead?                : Plus de fuel, ni de moyen de se ravitailler
-    
-    ;; Variables pour BDI
-    ;; ---
-    ;; • beliefs              : Ensemble des croyances de l'ennemi
-    ;; • intentions           : Ensemble des intentions de l'ennemi
-    
-    set munitions (average-munition-enemies - 5 + random 10) ;;
+    set munitions (average-munition-enemies - 5 + random 10)
     set carburant (average-carburant-enemies - 5 + random 10)
     set vision-radius enemies-vision-radius
     set shoot-radius enemies-shoot-radius
@@ -64,18 +62,12 @@ to setup-enemies
     set color red - 2
     
     ;; PLACEMENT
-    
-    ; La moitié arrive du flanc nord
-    ; L'autre arrive du flanc ouest
-    ;    let tmp random 2
-    ;    let randx random (max-pxcor / 10)
-    ;    let randy random (max-pycor / 10)
-    ;    move-to patch ((max-pxcor - randx) * tmp) ((max-pycor - randy)*(1 - tmp)) 1
-    
-    ; move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar?]
+    ;; Au hasard dans le carré nord-ouest
     move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = solAlt ]
     
-    add-intention "attack-convois" "false"
+    ;; INTENTIONS ajoutées aux ennemis
+    ; add-intention "attack-convois" "false"
+    add-intention "chercher-target" "exists-belief-target"
   ]
 end
 
@@ -124,23 +116,23 @@ end
 
 ; Lorsqu'on a repéré un convoi, on fonce dessus pour lui tirer dessus
 to move-to-target
-  ifelse not empty? my-path
-  [
-    move-to-target-astar
-  ]
-  [
-    rotate-enemy get-belief-enemy "target"
-    
-    ; On avance
-    if distance get-belief-enemy "target" > enemies-shoot-radius / 3
+  ;  ifelse not empty? my-path
+  ;  [
+  ;    move-to-target-astar
+  ;  ]
+  ;  [
+  rotate-enemy get-belief-enemy "target"
+  
+  ; On avance
+  if distance get-belief-enemy "target" > enemies-shoot-radius / 3
     [
       fd speed
     ]
-  ]
+  ;  ]
 end
 
 to move
-  ifelse not exist-beliefs-of-type "target" [
+  ifelse not exists-belief-target [
     random-move-nowrap
   ]
   [
@@ -193,7 +185,7 @@ to-report detect-obstacles-ahead
   while [ tmp <= speed and tmpbool = false ]
   [
     set tmpbool [obstacle?] of patch-ahead tmp
-    set tmp tmp + 0.05
+    set tmp tmp + 0.05  ;; Le pas de 0.05 a été choisi arbitrairement
   ]
   report tmpbool
 end
@@ -213,25 +205,34 @@ to-report detect-obstacles-enemy-target
   ]
   
   set heading headingFlag
+  
+  if current-intention = "suivre-target" and tmpbool
+  [
+    pop-intention
+    add-intention "eviter-obstacle" "detect-obstacles-enemy-target"
+  ]
+  
   report tmpbool
 end
 
 to detect-convois
   let targets convois in-radius-nowrap enemies-vision-radius
   ifelse count targets = 0 [
-    if exist-beliefs-of-type "target"
+    if exists-belief-target
     [
       remove-belief "target"
+      add-intention "chercher-target" exists-belief-target
     ]
   ]
   [
     update-belief-enemy create-belief "target" (first sort-on [distance myself] targets)
+    add-intention "suivre-target" "not detect-obstacles-enemy-target"
   ]
 end
 
 ; Decide d'un chemin a suivre si l'ennemi a une cible
 to search-ways-for-enemies
-  foreach sort-on [who] turtle-set enemies with [exist-beliefs-of-type "target" and not dead?] [
+  foreach sort-on [who] turtle-set enemies with [exists-belief-target and not dead?] [
     let id ([who] of ?)
     let obstacle-ahead false
     ask enemy id [
@@ -252,12 +253,6 @@ to search-ways-for-enemies
 end
 
 to enemies-think
-  ;  ; Détection des convois à portée
-  ;  ask enemies
-  ;  [
-  ;    detect-convois
-  ;  ]
-  
   ; Decide d'un chemin a suivre si l'ennemi a une cible
   search-ways-for-enemies
   
@@ -274,6 +269,10 @@ to attack-convois
   shoot-convois-in-range
 end
 
+;;;;;;;;;;;;;
+;; BELIEFS ;;
+;;;;;;;;;;;;;
+
 to update-belief-enemy [bel]
   ifelse exist-beliefs-of-type belief-type bel
     [
@@ -286,4 +285,28 @@ end
 
 to-report get-belief-enemy [b-type]
   report belief-content read-first-belief-of-type b-type
+end
+
+to-report exists-belief-target
+  report exist-beliefs-of-type "target"
+end
+
+
+;;;;;;;;;;;;;;;;
+;; INTENTIONS ;;
+;;;;;;;;;;;;;;;;
+
+to chercher-target
+  detect-convois
+  random-move-nowrap
+end
+
+to suivre-target
+  detect-convois
+  move-to-target
+end
+
+to eviter-obstacle
+  detect-convois
+  move-to-target-astar
 end

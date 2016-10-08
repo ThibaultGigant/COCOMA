@@ -4,7 +4,8 @@ __includes ["src/functions-astar.nls"
             "src/enemies.nls"
             "src/bdi.nls"
             "src/communication.nls"
-            "src/drones.nls"]
+            "src/drones.nls"
+            "src/drones-communications.nls"]
 
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
@@ -477,7 +478,7 @@ simu-speed
 simu-speed
 0
 10
-4
+1
 1
 1
 NIL
@@ -570,7 +571,7 @@ INPUTBOX
 348
 115
 nb-enemies
-3
+0
 1
 0
 Number
@@ -609,7 +610,7 @@ average-carburant-enemies
 average-carburant-enemies
 0
 5000
-5000
+4994
 1
 1
 NIL
@@ -666,7 +667,7 @@ INPUTBOX
 418
 115
 nb-drones
-0
+1
 1
 0
 Number
@@ -735,7 +736,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-67
+243
 1
 1
 NIL
@@ -805,9 +806,9 @@ SLIDER
 puissance-moteur-drones
 puissance-moteur-drones
 0
-100
-8
-1
+5
+0.4
+0.1
 1
 NIL
 HORIZONTAL
@@ -822,6 +823,47 @@ loading-speed-fuel
 0
 100
 100
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+750
+560
+922
+593
+speed-drones
+speed-drones
+0
+300
+101
+1
+1
+NIL
+HORIZONTAL
+
+INPUTBOX
+665
+56
+820
+116
+max-counter
+0
+1
+0
+Number
+
+SLIDER
+926
+558
+1098
+591
+communication-radius-drones
+communication-radius-drones
+0
+100
+67
 1
 1
 NIL

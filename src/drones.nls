@@ -9,12 +9,15 @@ drones-own [
   ;; ---
   ;; • statu                     : Le poste que doit tenir le drone parmis
   ;;    • protect-convoi         : Le drone protege un convoie
+  ;;    • attaquant              : Le drone attaque les ennemis
+  ;;    • ravitailleur           : Le drone ravitaille les autres drones
+  ;;    • surveillant            : Le drone surveille le terrain
   ;;
   ;; • intentions                : Liste des intentions du drone, pour la BDI
-  ;; • flag-end-of-intention     : Booléen, état de l'intention en cours (actif ou non)
+  ;; • incoming-queue            : Liste des messages reçus
   statu
   intentions
-  flag-end-of-intention
+  incoming-queue
   
   ;; • dead?                     : Vitalité du drone
   ;; • vision-radius             : Taille du champs de vision
@@ -31,10 +34,6 @@ drones-own [
   ;;   • base-patch              : Position de la base
   ;;   • last-statu              : Statu avant le rapatriement
   beliefs
-  ; à supprimer
-  convoi-suivi
-  base-patch
-  last-statu
 
   ;; Déplacement
   ;; ---
@@ -75,7 +74,6 @@ to setup-drones
     ;; Statut du drone
     set statu "protect-convoi"
     set intentions ([])
-    set flag-end-of-intention "false"
     
     set dead? false
     set vision-radius drones-vision-radius
@@ -84,19 +82,23 @@ to setup-drones
     ;; ---
     ;;   Suivi
     ;;   ---
-    ;;   • convoi-suivi   : Convoi que le drone suit et protège
+    ;;    • convoi-suivi     : Convoi que le drone suit et protège
+    ;;    • etat enrollement : Etape dans la procédure de recrutement
+    ;;    • counter enroll.  : Compteur servant au TimeOut pour la procédure de recrutement
     ;;   Rapatriement
     ;;   ---
-    ;;   • base-patch       : Position de la base
-    ;;   • last-statu       : Statu avant le rapatriement
+    ;;    • base-patch       : Position de la base
+    ;;    • last-statu       : Statu avant le rapatriement
     set beliefs ([])
     update-belief-enemy create-belief "convoi-suivi" nobody
+    update-belief-enemy create-belief "etat enrollement" "cherche convoi"
+    update-belief-enemy create-belief "counter enrollement" 0
     
     update-belief-enemy create-belief "base-patch" nobody
     update-belief-enemy create-belief "last-statu" "enBase"
     
     ;; Deplacement
-    set speed 0.05 * simu-speed
+    set speed speed-drones * simu-speed / 1000
     set max-dir 10 * simu-speed
     set max-alt max-alt-drones + solAlt
     set min-alt min-alt-drones + solAlt
@@ -104,71 +106,38 @@ to setup-drones
     ;; Carburant                             --- Plusieurs modèles de drones avec des caractéristiques pré-définis ?
     set fuel max-fuel-drones
     set max-fuel max-fuel-drones
-    set pourcentage-securite-fuel-drones 0.1
+    set pourcentage-securite-fuel-drones 0.2
     
     ;; Placement
     move-to one-of patches with [ base? ]
     set zcor solAlt
     
     ;; Stratégie
-    add-intention "take-off-drones" is-end-of-intention
+    add-intention "take-off-drones" "false"
   ]
 end
 
-;;;;;;;;;;
-;; MOVE ;;
-;;;;;;;;;;
-
-to move-drone
-  take-off-drones-noBDI
-  suivi-drones-noBDI
-  rapatriement-drones
-  landing-drones-noBDI
-end
-
-; Fait aterrire les drones
-to landing-drones-noBDI
-  ask drones with [ statu = "Rapatriement" and distance-nowrap get-belief-drones "base-patch" < max-Alt + 1 and zcor > solAlt ] [
-    let newAlt zcor - speed
-    ifelse newAlt > solAlt [
-      let last-pitch pitch
-      set pitch -90
-      fd-drones speed
-      set pitch last-pitch
-    ]
-    [ move-to patch xcor ycor solAlt ]
-    if newAlt <= solAlt [ set statu "Base" ]
+to drones-think  
+  ask drones with [ not dead? and fuel >= 0 ] [
+    execute-intentions
   ]
 end
 
-; Fait décoller les drones
-to take-off-drones-noBDI
-  ask drones with [ statu != "Rapatriement" and zcor < min-Alt ] [
-    let newAlt zcor + speed
-    ifelse newAlt < max-alt [
-      let last-pitch pitch
-      set pitch 90
-      fd-drones speed
-      set pitch last-pitch
-    ]
-    [ set statu "Suivi" ]
-  ]
-end
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;       Intentions       ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to suivi-drones-noBDI
-  ask drones with [ statu = "Suivi" ] [
-    if get-belief-drones "convoi-suivi" = nobody [
-      search-convoi-drones
-    ]
-    if get-belief-drones "convoi-suivi" != nobody [
-      if not distance-min-drones [
-        ; Rotation
-        rotate-drone get-belief-drones "convoi-suivi"
-      ]
-      ; Déplacement
-      if distance-nowrap get-belief-drones "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
-    ]
-  ]
+;; I. protect-convoi
+;; ---
+;; Suivi et protection de convoi
+
+to protect-convoi
+  
+  enrollement
+  
+  suivi-convoi-drones
+  
+  check-fuel-drones
 end
 
 to suivi-convoi-drones
@@ -183,6 +152,9 @@ to suivi-convoi-drones
     ; Déplacement
     if distance-nowrap get-belief-drones "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
   ]
+  
+  ;; Coût du flottement
+  if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
 end
 
 to search-convoi-drones
@@ -195,92 +167,25 @@ to search-convoi-drones
   ]
 end
 
-;; Rapatriement
+;; II. attaquant
 ;; ---
-;; Doit-on garder en mémoire la direction de la base,
-;; ou doit-on considérer que les drones connaissent
-;; l'emplacement exacte de la base en tout temps ?
-to rapatriement-drones
-  ask drones with [ statu = "Rapatriement" ] [
-    if not at-base-drones [
-      rotate-drone get-belief-drones "base-patch"
-      ;ifelse [distance-nowrap myself] of (get-belief-drones "base-patch") < speed / 2 [ fd-drones speed / 5 ]
-      fd-drones min (list speed ([distance-nowrap myself] of (get-belief-drones "base-patch") / 20))
-    ]
-  ]
-end
+;; Attaque des ennemis
 
-to check-fuel-drones-noBDI
-  ask drones with [ statu != "OutOfFuel" and fuel <= 0 and not at-base-drones ] [
-    set statu "OutOfFuel"
-    set color yellow
-  ]
-  
-  ask drones with [ statu = "OutOfFuel" and zcor > solAlt + 1 ] [
-    set zcor solAlt
-  ]
-  
-  ask drones with [ statu != "Rapatriement" and statu != "OutOfFuel" and not dead? ] [
-    ;; Le patch de la base la plus proche
-    let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
-    
-    ;; Vérification du carburant restant                                           --- distance-nowrap euclidienne ou de Manhattan ?
-    if (fuel + pourcentage-securite-fuel-drones * fuel) < (abs ([pxcor] of tmp - xcor ) + abs ([pycor] of tmp - ycor )) [
-    ;if (fuel + pourcentage-securite-fuel-drones * fuel) < [distance-nowrap myself] of tmp * speed [
-      update-belief-drones create-belief "last-statu" statu
-      set statu "Rapatriement"
-      update-belief-drones create-belief "base-patch" tmp
-;      set base-patch tmp
-    ]
-  ]
-end
+;; III. ravitailleur
+;; ---
+;; Ravitaille les drones en carburant
 
-to check-fuel-drones
-  ;; Le patch de la base la plus proche
-  let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
-  
-  ;; Vérification du carburant restant
-  if (fuel + pourcentage-securite-fuel-drones * fuel) < (abs ([pxcor] of tmp - xcor ) + abs ([pycor] of tmp - ycor )) [
-    ;; Le drone garde en mémoire la place de la base la plus proche
-    update-belief-drones create-belief "base-patch" tmp
-    
-    ;; Fin du comportement principal, le drone doit se ravitailler
-    let this-intention get-intention
-    add-intention "ravitaillement-drones" is-end-of-intention
-    remove-intention this-intention
-    set flag-end-of-intention "true" ]
-end
+;; IV. surveillmant
+;; ---
+;; Surveille le terrain
 
-; Chargement du carburant
-to reload-drones-noBDI
-  ask drones with [ statu = "Base" ] [
-    set fuel max-fuel
-    set statu get-belief-drones "last-statu"
-  ]
-end
 
-to drones-think
-  
-  ;; Pour les drones à la base
-  ;reload-drones
-  
-  ;; Vérification du carburant
-  ;check-fuel-drones
-  
-  ask drones with [ not dead? and fuel > 0 ] [
-    execute-intentions
-    set fuel fuel - speed
-    show intentions
-  ]
-end
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Comportement (Behaviours / Intentions) ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;       Mouvements       ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Décollage du drone
 to take-off-drones
-  set flag-end-of-intention "false"
   
   ;; Calcul de la nouvelle altitude visée
   let newAlt zcor + speed
@@ -293,19 +198,16 @@ to take-off-drones
     set pitch last-pitch
     
     ;; Perte de carburant
-  ];set fuel fuel - speed * puissance-moteur-drones ]
+  ]
   
   ;; Fin du décollage, le drone reprend son comportement principal
   [ let this-intention get-intention
     add-intention statu "false"
-    remove-intention this-intention
-    set flag-end-of-intention "true" ]
+    remove-intention this-intention ]
 end
 
 ;; Aterrissage du drone
-to landing
-  set flag-end-of-intention "false"
-  
+to landing  
   ;; Calcul de la nouvelle altitude visée
   let newAlt zcor - speed
   
@@ -321,48 +223,62 @@ to landing
   [ move-to patch xcor ycor solAlt 
     let this-intention get-intention
     add-intention "reload-drones" "false"
-    remove-intention this-intention
-    set flag-end-of-intention "true" ]
+    remove-intention this-intention ]
 end
 
 ;; Rechargement du fuel
 to reload-drones
-  set flag-end-of-intention "false"
   if fuel < max-fuel
   [ set fuel min (list max-fuel (fuel + loading-speed-fuel)) ]
   if fuel = max-fuel 
   [ let this-intention get-intention
     add-intention "take-off-drones" "false"
-    remove-intention this-intention
-    set flag-end-of-intention "true" ]
+    remove-intention this-intention ]
 end
 
-;; Suivi et protection de convoi
-to protect-convoi
-  set flag-end-of-intention "false"
-  
-  suivi-convoi-drones
-  
-  check-fuel-drones
-end
-
+;; Ravitaillement
 ;; Retour à la base pour le ravitaillement en carburant
+;; ---
+;; Doit-on garder en mémoire la direction de la base,
+;; ou doit-on considérer que les drones connaissent
+;; l'emplacement exacte de la base en tout temps ?
 to ravitaillement-drones
-  set flag-end-of-intention "false"
   ifelse not at-base-drones [
     rotate-drone get-belief-drones "base-patch"
     fd-drones min (list speed ([distance-nowrap myself] of (get-belief-drones "base-patch") / 20))
+    
+    ;; Coût du flottement
+    if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
   ]
   [ let this-intention get-intention
     add-intention "landing" "false"
-    remove-intention this-intention
-    set flag-end-of-intention "true" ]
+    remove-intention this-intention ]
 end
 
-;;;;;;;;;;;;;;;;;;;;;;;;
-;; Fonctions diverses ;;
-;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fait avancer les drones, prend en compte le nowrap et les limites de map
+to fd-drones [ sp ]
+  ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
+    fd sp
+    
+    fuel-consomme "fd" sp
+  ]
+  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
+      fd sp / 5
+      
+      fuel-consomme "fd" (sp / 5)
+    ]
+    [
+      ifelse heading >= 180 [ rt 10 ]
+      [ lt 10 ]
+      
+      ;; Carburant consommé (un rotation vaut trois fois moins qu'un déplacement)
+      
+      fuel-consomme "rotation" 10
+    ]
+  ]
+end
 
+;; Tourne la tête du drone
 to rotate-drone [ goal ]
   ; Si le drone se trouve à l'endroit souhaité (modulo l'altitude)
   if is-turtle? goal and [xcor] of goal = xcor and [ycor] of goal = ycor or 
@@ -391,27 +307,86 @@ to rotate-drone [ goal ]
   rt dirCorrection
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fonctions diverses ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; I. Fonctions liées au carburant
+;; ---
+;; • check-fuel-drones          : Vérifie s'il y a encore assez de fuel pour revenir à la base
+;; • fuel-consomme              : Met-à-jour le niveau de carburant du drones en fonction de ses actions
+
+;; Vérification du carburant
+to check-fuel-drones
+  ;; Le patch de la base la plus proche
+  let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
+  
+  ;; Estimation du carburant nécesasire pour rentrer à la base
+  ;; • pourcentage-securite-fuel-drones       : Donne une marge de sécurité
+  ;; ---
+  ;; Calcul
+  ;; • Le drone se déplace jusqu'à la base (fuel-consomme "fd")   : distance-nowrap myself
+  ;; • Le drone flotte dans les airs (fuel-consomme "floating")   : 0.25 / speed (le flottement coût un quart moins cher)
+  ;; • Le drone se laisse une marge                               : pourcentage-securite-fuel-drones
+  ;; • La puissance moteur du drone est prise en compte           : puissance-moteur-drones
+  let fuel-estimate ([distance-nowrap myself] of tmp * ( 1 + 0.25 / speed) + (zcor - solAlt) / 5)
+                    * (1 + pourcentage-securite-fuel-drones) * puissance-moteur-drones
+
+  ;; Vérification du carburant restant
+  if fuel < fuel-estimate [
+    ;; Le drone garde en mémoire la place de la base la plus proche
+    update-belief-drones create-belief "base-patch" tmp
+    
+    ;; Fin du comportement principal, le drone doit se ravitailler
+    let this-intention get-intention
+    add-intention "ravitaillement-drones" "false"
+    remove-intention this-intention ]
+end
+
+;; Comsomation de carburant
+;; ---
+;; La consommation dépend de la puissance des moteurs du drone,
+;; ainsi que du type de l'action / du mouvement
+;; ---
+;; • mouv                 : Type de l'action effectué
+;;   ---- Types
+;;        • "fd"          : Le drone a avancé devant lui (coût étalon, par mètre)
+;;        • "rotation"    : Le drone a effectué une rotation (coûte trois fois moins cher, pour 10 degrés)
+;;        • "take-off"    : Le drone décolle (ou prend de l'altitude) (coûte 1.5 fois plus cher, par mètre)
+;;        • "landing"     : Le drone aterri (ou perd de l'altitude) (coûte 5 fois moins cher, par mètre)
+;;        • "floating"    : Le drone reste sur place (on ne cumule avec un autre type) (coûte 4 fois moins cher, par tick)
+;;   ----
+;; • nb                   : Valeur associé à l'action (de combien de mètres le drone a avancé, etc)
+to fuel-consomme [ mouv nb ]
+  if mouv = "fd"
+  [ set fuel fuel - nb  * puissance-moteur-drones ]
+  
+  if mouv = "rotation"
+  [ set fuel fuel - (nb / 30) * puissance-moteur-drones ]
+  
+  if mouv = "take-off"
+  [ set fuel fuel - (nb * 1.5)  * puissance-moteur-drones ]
+  
+  if mouv = "landing"
+  [ set fuel fuel - (nb / 5)  * puissance-moteur-drones ]
+  
+  if mouv = "floating"
+  [ set fuel fuel - (1 / 4)  * puissance-moteur-drones ]
+  
+end
+
+;; II. Fonctions utilitaires
+;; ---
+;; at-base-drones            : Renvoie si le drone est à la base
+;; distance-min-drones       : Vérifie si le drone est trop proche d'un autre
+
 to-report at-base-drones
   report abs ([pxcor] of get-belief-drones "base-patch" - xcor ) + abs ([pycor] of get-belief-drones "base-patch" - ycor ) < 1
   ;report min [distance-nowrap myself] of patches with [ base? ] <= 1
 end
 
-to fd-drones [ sp ]
-  ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
-    fd sp
-  ]
-  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
-      fd sp / 5
-    ]
-    [
-      ifelse heading >= 180 [ rt 10 ] ;; PAS BON
-      [ lt 10 ]
-    ]
-  ]
-end
-
 to-report distance-min-drones
-  if count drones < 2 [ report true ]
+  if count drones < 2 [ report false ]
   ; Calcul de l'angle avec la cible
   let other-drone first sort-on [distance-nowrap myself] other drones
   if [distance myself] of other-drone > min-distance-drones [ report false ]
@@ -426,18 +401,19 @@ to-report distance-min-drones
   
   if dirCorrection < 120 and dirCorrection > 0[
     lt 10
+    fuel-consomme "rotation" 10
+    
     fd-drones speed
   ]
   if dirCorrection > -120 and dirCorrection < 0[
     rt 10
+    fuel-consomme "rotation" 10
+    
     fd-drones speed
   ]
   report true
 end
 
-to-report is-end-of-intention
-  report flag-end-of-intention
-end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Fonctions pour les Beliefs ;;

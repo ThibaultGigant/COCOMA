@@ -478,7 +478,7 @@ simu-speed
 simu-speed
 0
 10
-1
+2
 1
 1
 NIL
@@ -571,7 +571,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+10
 1
 0
 Number
@@ -667,7 +667,7 @@ INPUTBOX
 418
 115
 nb-drones
-1
+0
 1
 0
 Number

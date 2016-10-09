@@ -76,12 +76,8 @@ end
 ;; MOVE ;;
 ;;;;;;;;;;
 
-; Mouvement randomisé, principalement pour le début de la simulation
-to random-move-nowrap
-  ;; Changement de cap selon probabilité
-  if random 100 < 1 
-  [ lt random max-dir * one-of [ 1 -1 ] ]
-  
+; Avance devant à la vitesse de l'ennemi, mais seulement si on le peut (pas d'obstacle)
+to avancer
   ;; Vérification du patch en mire, si ce n'est pas un obstacle et s'il y en a un
   ifelse not (detect-obstacles-ahead)
     [
@@ -93,61 +89,60 @@ to random-move-nowrap
     ]
 end
 
+; Mouvement randomisé, principalement pour le début de la simulation
+to random-move-nowrap
+  ;; Changement de cap selon probabilité
+  if random 100 < 1 
+  [ lt random max-dir * one-of [ 1 -1 ] ]
+  
+  avancer
+end
+
+; Mouvement vers un patch spécifique, principalement utilisé pour le mouvement astar
 to move-to-patch [ patch-target ]
   rotate-enemy patch-target
-  fd speed
+  avancer
   
 end
 
+; Mouvement le long d'un chemin astar calculé précédemment
 to move-to-target-astar
-  if not empty? my-path [
+  ; Vérification qu'on a bien un chemin astar en mémoire
+  ifelse not empty? my-path 
+  [
     let next-patch first my-path
     let zz pzcor
     set next-patch [patch-at 0 0 (zz - pzcor)] of next-patch ; mise a niveau de pzcor au cas ou le chemin a ete calculé sur un autre plan
-                                                             ; Deplacement vers le prochain waypoint
+                                                             ; Deplacement vers le prochain patch
     if next-patch != patch-here [move-to-patch next-patch]
     ; Si on a atteint ce patch, on le supprime de la liste, et on va donc continuer vers le prochain patch du chemin
-    if patch-here = next-patch [
+    if patch-here = next-patch 
+    [
       set my-path remove-item 0 my-path
       if debug [ show (word "Waypoint atteint: " patch-here ", prochain: " next-patch ) ]
     ]
   ]
+  [
+    show "move-to-target-astar: no path to follow"
+  ]
 end
 
-; Lorsqu'on a repéré un convoi, on fonce dessus pour lui tirer dessus
+; Lorsqu'on a repéré un convoi, on fonce sur lui pour tirer dessus
 to move-to-target
-  ;  ifelse not empty? my-path
-  ;  [
-  ;    move-to-target-astar
-  ;  ]
-  ;  [
   rotate-enemy get-belief-enemy "target"
   
   ; On avance
   if distance get-belief-enemy "target" > enemies-shoot-radius / 3
     [
-      fd speed
+      avancer
     ]
-  ;  ]
-end
-
-to move
-  ifelse not exists-belief-target [
-    random-move-nowrap
-  ]
-  [
-    move-to-target
-  ]
 end
 
 to shoot-convois-in-range
   
 end
 
-;;;;;;;;;;;;;;;;;;;;;;;;
-;; Fonctions diverses ;;
-;;;;;;;;;;;;;;;;;;;;;;;;
-
+; Rotation de l'ennemi vers sa cible, sans dépasser un angle limite pour garder un certain réalisme
 to rotate-enemy [ goal ]
   ; Calcul de l'angle avec la cible
   let headingFlag (towards-nowrap goal)
@@ -170,14 +165,15 @@ to rotate-enemy [ goal ]
   rt dirCorrection
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fonctions diverses ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; Détecte les obstacles entre la turtle et le patch où il doit se rendre devant lui
 to-report detect-obstacles-ahead
   ; Vérification qu'on ne va pas dans le vide
   if abs (xcor - [pxcor] of patch-ahead speed) > speed + 5 or abs (ycor - [pycor] of patch-ahead speed) > speed + 5
   [ report true ]
-  
-  ; Vérification que le patch visé n'est pas un obstacle
-  ; report [obstacle?] of patch-ahead speed
   
   ; Vérification que les patchs entre la turtle et le patch visé ne sont pas des obstacles
   let tmp 0
@@ -190,6 +186,7 @@ to-report detect-obstacles-ahead
   report tmpbool
 end
 
+; Détecte les obstacles entre la turtle et le patch où se trouve la target
 to-report detect-obstacles-enemy-target
   ; on stocke le heading de la turtle pour la reset quand on a fini
   let headingFlag heading
@@ -204,40 +201,43 @@ to-report detect-obstacles-enemy-target
     set tmp tmp + 1
   ]
   
+  ; Remise à la direction de départ
   set heading headingFlag
-  
-  if current-intention = "suivre-target" and tmpbool
-  [
-    pop-intention
-    add-intention "eviter-obstacle" "detect-obstacles-enemy-target"
-  ]
   
   report tmpbool
 end
 
+; Détection du convoi le plus proche pour l'assigner à la target
 to detect-convois
+  ; Récupération des convois dans le champ de vision
   let targets convois in-radius-nowrap enemies-vision-radius
+  
+  ; Mise à jour des connaissances
   ifelse count targets = 0 [
+    ; Si on connaissait la position d'un convoi à viser, on la supprime et on recommence à chercher
     if exists-belief-target
     [
       remove-belief "target"
-      add-intention "chercher-target" exists-belief-target
     ]
   ]
   [
+    ; Mise à jour des connaissances
     update-belief-enemy create-belief "target" (first sort-on [distance myself] targets)
-    add-intention "suivre-target" "not detect-obstacles-enemy-target"
+    
+    ;show intentions
   ]
 end
 
 ; Decide d'un chemin a suivre si l'ennemi a une cible
 to search-ways-for-enemies
+  ; Pour chaque ennemi avec cible et qui n'est pas mort, on choisit un chemin
   foreach sort-on [who] turtle-set enemies with [exists-belief-target and not dead?] [
     let id ([who] of ?)
     let obstacle-ahead false
     ask enemy id [
       set obstacle-ahead detect-obstacles-enemy-target
     ]
+    ; On ne calcule un chemin QUE si c'est nécessaire : obstacle entre soi et la target
     if obstacle-ahead and empty? [my-path] of ?
     and not [obstacle?] of [patch-here] of [get-belief-enemy "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
                                                                               ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
@@ -258,21 +258,16 @@ to enemies-think
   
   ask enemies [
     execute-intentions
-    ;    move
     ;    shoot-convois-in-range
+    update-intentions
   ]
-end
-
-to attack-convois
-  detect-convois
-  move
-  shoot-convois-in-range
 end
 
 ;;;;;;;;;;;;;
 ;; BELIEFS ;;
 ;;;;;;;;;;;;;
 
+; Mise à jour du belief bel si ce belief existe, sinon ajout
 to update-belief-enemy [bel]
   ifelse exist-beliefs-of-type belief-type bel
     [
@@ -283,10 +278,12 @@ to update-belief-enemy [bel]
     ]
 end
 
+; Récupération du belief voulu par son type
 to-report get-belief-enemy [b-type]
   report belief-content read-first-belief-of-type b-type
 end
 
+; Indique que l'ennemi a un belief "target"
 to-report exists-belief-target
   report exist-beliefs-of-type "target"
 end
@@ -296,17 +293,46 @@ end
 ;; INTENTIONS ;;
 ;;;;;;;;;;;;;;;;
 
+;; Liste des intentions possibles de l'ennemi
+;; ---
+
+; Rechercher une target, car on n'en a pas encore
 to chercher-target
   detect-convois
   random-move-nowrap
 end
 
+; On a repéré une target et il n'y a pas d'obstacle entre elle et nous, donc on fonce
 to suivre-target
   detect-convois
   move-to-target
 end
 
+; On a repéré une target et il y a un obstacle, on suit astar
 to eviter-obstacle
   detect-convois
   move-to-target-astar
+end
+
+;; Fonctions sur les intentions
+;; ---
+
+; Mise à jour des intentions selon les situations
+to update-intentions
+  ; Sans target, on en cherche une, sinon on la poursuit
+  ifelse not exists-belief-target
+  [
+    add-intention "chercher-target" "exists-belief-target"
+  ]
+  [
+    let obstacle-ahead detect-obstacles-enemy-target
+    if not obstacle-ahead and current-intention != "suivre-target"
+    [
+      add-intention "suivre-target" "detect-obstacles-enemy-target"
+    ]
+    if obstacle-ahead and current-intention != "eviter-obstacle"
+    [
+      add-intention "eviter-obstacle" "not detect-obstacles-enemy-target"  
+    ]
+  ]
 end

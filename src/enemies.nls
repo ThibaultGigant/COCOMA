@@ -79,7 +79,7 @@ end
 ; Avance devant à la vitesse de l'ennemi, mais seulement si on le peut (pas d'obstacle)
 to avancer
   ;; Vérification du patch en mire, si ce n'est pas un obstacle et s'il y en a un
-  ifelse not (detect-obstacles-ahead)
+  ifelse not (detect-obstacles-ahead) or detect-agent-ahead
     [
       fd speed
     ]
@@ -169,6 +169,19 @@ end
 ;; Fonctions diverses ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
+; détecte si une turtle se trouve entre l'ennemi et la case où il veut aller
+to-report detect-agent-ahead
+  ; Vérification que les patchs entre la turtle et le patch visé ne sont pas occupés
+  let tmp 0
+  let tmpbool false
+  while [ tmp <= speed and tmpbool = false ]
+  [
+    set tmpbool [count turtles-here > 0] of patch-ahead tmp
+    set tmp tmp + 0.05  ;; Le pas de 0.05 a été choisi arbitrairement
+  ]
+  report tmpbool
+end
+
 ; Détecte les obstacles entre la turtle et le patch où il doit se rendre devant lui
 to-report detect-obstacles-ahead
   ; Vérification qu'on ne va pas dans le vide
@@ -188,6 +201,10 @@ end
 
 ; Détecte les obstacles entre la turtle et le patch où se trouve la target
 to-report detect-obstacles-enemy-target
+  if [obstacle?] of [patch-here] of get-belief-enemy "target"
+  [
+    report true
+  ]
   ; on stocke le heading de la turtle pour la reset quand on a fini
   let headingFlag heading
   face-nowrap get-belief-enemy "target"
@@ -231,14 +248,10 @@ end
 ; Decide d'un chemin a suivre si l'ennemi a une cible
 to search-ways-for-enemies
   ; Pour chaque ennemi avec cible et qui n'est pas mort, on choisit un chemin
-  foreach sort-on [who] turtle-set enemies with [exists-belief-target and not dead?] [
+  foreach sort-on [who] turtle-set enemies with [not dead? and exists-belief-target and current-intention = "eviter-obstacle"] [
     let id ([who] of ?)
-    let obstacle-ahead false
-    ask enemy id [
-      set obstacle-ahead detect-obstacles-enemy-target
-    ]
     ; On ne calcule un chemin QUE si c'est nécessaire : obstacle entre soi et la target
-    if obstacle-ahead and empty? [my-path] of ?
+    if empty? [my-path] of ?
     and not [obstacle?] of [patch-here] of [get-belief-enemy "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
                                                                               ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
       let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
@@ -248,7 +261,6 @@ to search-ways-for-enemies
       set astar-longpath tmp
       ask ? [ set my-path path ]
     ]
-    if not obstacle-ahead [ ask ? [ set my-path [] ] ]
   ]
 end
 
@@ -326,11 +338,11 @@ to update-intentions
   ]
   [
     let obstacle-ahead detect-obstacles-enemy-target
-    if not obstacle-ahead and current-intention != "suivre-target"
+    if not obstacle-ahead and (empty? intentions or current-intention != "suivre-target")
     [
       add-intention "suivre-target" "detect-obstacles-enemy-target"
     ]
-    if obstacle-ahead and current-intention != "eviter-obstacle"
+    if obstacle-ahead and (empty? intentions or current-intention != "eviter-obstacle")
     [
       add-intention "eviter-obstacle" "not detect-obstacles-enemy-target"  
     ]

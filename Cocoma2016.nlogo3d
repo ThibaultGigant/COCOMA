@@ -443,7 +443,7 @@ SWITCH
 271
 astar-randpath
 astar-randpath
-1
+0
 1
 -1000
 
@@ -465,7 +465,7 @@ SWITCH
 316
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -625,7 +625,7 @@ enemies-vision-radius
 enemies-vision-radius
 0
 100
-26
+20
 1
 1
 NIL

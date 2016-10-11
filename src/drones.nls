@@ -149,7 +149,7 @@ to suivi-convoi-drones
   if intelligent-get-belief "convoi-suivi" != nobody [
     if not distance-min-drones [
       ; Rotation
-      rotate-drone intelligent-get-belief "convoi-suivi"
+      rotate-agent intelligent-get-belief "convoi-suivi"
     ]
     ; Déplacement
     if distance-nowrap intelligent-get-belief "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
@@ -246,7 +246,7 @@ end
 ;; l'emplacement exacte de la base en tout temps ?
 to ravitaillement-drones
   ifelse not at-base-drones [
-    rotate-drone intelligent-get-belief "base-patch"
+    rotate-agent intelligent-get-belief "base-patch"
     fd-drones min (list speed ([distance-nowrap myself] of (intelligent-get-belief "base-patch") / 20))
     
     ;; Coût du flottement
@@ -397,6 +397,8 @@ to-report distance-min-drones
   if [xcor] of other-drone = xcor and [ycor] of other-drone = ycor [
        report false
   ]
+  
+  ; Si on arrive là, le drone est près d'un autre, on le fait tourner pour éviter l'autre drone, et on avance
   let headingFlag (towards-nowrap other-drone)
   let dirCorrection subtract-headings headingFlag heading
   

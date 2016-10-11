@@ -64,6 +64,7 @@ to setup-enemies
     ;; PLACEMENT
     ;; Au hasard dans le carré nord-ouest
     move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = solAlt ]
+    set zcor solAlt
     
     ;; INTENTIONS ajoutées aux ennemis
     ; add-intention "attack-convois" "false"
@@ -103,7 +104,7 @@ end
 
 ; Mouvement vers un patch spécifique, principalement utilisé pour le mouvement astar
 to move-to-patch [ patch-target ]
-  rotate-enemy patch-target
+  rotate-agent patch-target
   avancer
   
 end
@@ -132,7 +133,7 @@ end
 
 ; Lorsqu'on a repéré un convoi, on fonce sur lui pour tirer dessus
 to move-to-target
-  rotate-enemy intelligent-get-belief "target"
+  rotate-agent intelligent-get-belief "target"
   
   ; On avance
   if distance intelligent-get-belief "target" > enemies-shoot-radius / 3
@@ -206,7 +207,7 @@ end
 
 ; Détecte les obstacles entre la turtle et le patch où se trouve la target
 to-report detect-obstacles-enemy-target
-  if [obstacle?] of [patch-here] of intelligent-get-belief "target"
+  if [obstacle?] of [patch-here] of intelligent-get-belief "target" or [obstacle?] of patch-here
   [
     report true
   ]
@@ -260,10 +261,10 @@ to search-ways-for-enemies
     and not [obstacle?] of [patch-here] of [intelligent-get-belief "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
                                                                               ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
       let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
-      let tmp astar-longpath
-      set astar-longpath false
+;      let tmp astar-longpath
+;      set astar-longpath false
       let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [intelligent-get-belief "target"] of ? false)
-      set astar-longpath tmp
+;      set astar-longpath tmp
       ask ? [ set my-path path ]
     ]
   ]

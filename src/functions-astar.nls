@@ -50,7 +50,7 @@ to-report plan-astar [start goal longpath?] ; start et goal sont des patchs
       ; On reorganise la liste open pour toujours visiter le meilleur patch candidat en premier (celui qui maximise f)
       set open sort-by [item 0 ?1 < item 0 ?2] open
       ; Cas particulier: on visite le plus mauvais patch, celui qui minimise f, pour maximiser la longueur du chemin (cool pour tester les drones car l'environnement reste relativement petit)
-      if astar-longpath or longpath? [set open reverse open]
+      if longpath? [set open reverse open]
       ; Autre cas particulier: on visite le chemin au hasard, permet aussi de construire un long chemin (mais moins long) et plus rapidement. C'est un compromis entre l'optimal et la longueur.
       if astar-randpath [set open shuffle open]
       

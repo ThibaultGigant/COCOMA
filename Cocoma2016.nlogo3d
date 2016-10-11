@@ -7,7 +7,8 @@ __includes ["src/functions-astar.nls"
             "src/drones.nls"
             "src/drones-communications.nls"
             "src/convois-communications.nls"
-            "src/functions-bdi.nls"]
+            "src/functions-bdi.nls"
+            "src/commons.nls"]
 
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
@@ -215,7 +216,7 @@ to setup-convois
       set finished? false
       set leader? false
       set to-protect? false
-      set genlongpath? false
+      set genlongpath? astar-longpath
       set dead? false
 
       set beliefs ([])
@@ -428,7 +429,7 @@ INPUTBOX
 637
 330
 astar-max-depth
-5000
+10000
 1
 0
 Number
@@ -451,7 +452,7 @@ SWITCH
 271
 astar-randpath
 astar-randpath
-0
+1
 1
 -1000
 
@@ -579,7 +580,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+10
 1
 0
 Number
@@ -675,7 +676,7 @@ INPUTBOX
 418
 115
 nb-drones
-6
+3
 1
 0
 Number

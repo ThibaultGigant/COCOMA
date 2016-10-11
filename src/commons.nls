@@ -1,0 +1,30 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fonctions communes aux différents agents ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+; Rotation de l'agent vers sa cible, sans dépasser un angle limite pour garder un certain réalisme
+to rotate-agent [ goal ]
+  ; Si le drone se trouve à l'endroit souhaité (modulo l'altitude)
+  
+     
+  ; Calcul de l'angle avec la cible
+  let headingFlag (towards-nowrap goal)
+  let dirCorrection subtract-headings headingFlag heading
+  
+  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
+  set dirCorrection precision dirCorrection 2
+  
+  ; Limite de l'angle, pour que ce soit plus realiste (l'ennemi ne peut pas faire un demi-tour sur place!)
+  ifelse dirCorrection > max-dir [ ; limite a droite
+    set dirCorrection max-dir
+  ]
+  [
+    if dirCorrection < max-dir * -1 [ ; limite a gauche
+      set dirCorrection max-dir * -1
+    ]
+  ]
+  
+  ; On tourne
+  rt dirCorrection
+end

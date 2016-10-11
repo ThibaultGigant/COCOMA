@@ -72,6 +72,7 @@ to convois-think
     
     ask convois with [not finished? and not dead?] [
       recrutement-drones
+      ;show intelligent-get-belief "drones-protecteurs"
     ]
     
   ]
@@ -160,5 +161,7 @@ to setup-convois-beliefs
   
   intelligent-update-belief "nb-protecteurs" 0
   intelligent-update-belief "max-protecteurs" 5 ; pour les tests
+  
+  intelligent-update-belief "drones-protecteurs" ([])
   
 end

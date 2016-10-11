@@ -25,8 +25,8 @@ to recrutement-drones
         
         ifelse nb-protecteurs < max-protecteurs
         [
-          set reply add-content "Accept" reply 
-          ;intelligent-update-belief "drones-protecteurs" (list intelligent-get-belief "drones-protecteurs" [get-sender msg  0])
+          set reply add-content "Accept" reply
+          intelligent-update-belief "drones-protecteurs" (lput (list (get-sender msg) 0) intelligent-get-belief "drones-protecteurs")
           intelligent-update-belief "nb-protecteurs" nb-protecteurs + 1
         ]
         [ set reply add-content "Refuse" reply ]
@@ -37,4 +37,45 @@ to recrutement-drones
     ]
   ]
   
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Fonctions diverses ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Fonctions liées aux protecteurs
+;; ---
+;; • get-protecteurs
+;; • get-counter-timeOut-protecteurs
+
+;; Renvoie la liste des protecteurs
+to-report get-protecteurs
+  let li ([])
+  let protecteurs intelligent-get-belief "drones-protecteurs"
+
+  if protecteurs = nobody [ stop ]
+  
+  foreach protecteurs
+  [
+    set li ( list li (first ?) )
+  ]
+  
+  report li
+end
+
+;; Renvoie le nombre de ticks depuis que l'on n'a pas eu de nouvelle du protecteur
+;; ---
+;; • protecteur      : Le protecteur que l'on souhaite prendre en compte
+to-report get-counter-timeOut-protecteurs [protecteur]
+  let protecteurs intelligent-get-belief "drones-protecteurs"
+  
+  if protecteurs = nobody [ stop ]
+  
+  foreach protecteurs
+  [
+    if first ? = protecteur
+    [ report last ? ]
+  ]
+  
+  report nobody
 end

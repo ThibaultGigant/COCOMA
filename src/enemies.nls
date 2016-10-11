@@ -132,10 +132,10 @@ end
 
 ; Lorsqu'on a repéré un convoi, on fonce sur lui pour tirer dessus
 to move-to-target
-  rotate-enemy get-belief-enemy "target"
+  rotate-enemy intelligent-get-belief "target"
   
   ; On avance
-  if distance get-belief-enemy "target" > enemies-shoot-radius / 3
+  if distance intelligent-get-belief "target" > enemies-shoot-radius / 3
     [
       avancer
     ]
@@ -206,18 +206,18 @@ end
 
 ; Détecte les obstacles entre la turtle et le patch où se trouve la target
 to-report detect-obstacles-enemy-target
-  if [obstacle?] of [patch-here] of get-belief-enemy "target"
+  if [obstacle?] of [patch-here] of intelligent-get-belief "target"
   [
     report true
   ]
   ; on stocke le heading de la turtle pour la reset quand on a fini
   let headingFlag heading
-  face-nowrap get-belief-enemy "target"
+  face-nowrap intelligent-get-belief "target"
   
   ; Vérification que les patchs entre la turtle et le patch visé ne sont pas des obstacles
   let tmp 1
   let tmpbool false
-  while [ tmp <= distance get-belief-enemy "target" and tmpbool = false ]
+  while [ tmp <= distance intelligent-get-belief "target" and tmpbool = false ]
   [
     set tmpbool [obstacle?] of patch-ahead tmp
     set tmp tmp + 1
@@ -244,7 +244,7 @@ to detect-convois
   ]
   [
     ; Mise à jour des connaissances
-    update-belief-enemy create-belief "target" (first sort-on [distance myself] targets)
+    intelligent-update-belief "target" (first sort-on [distance myself] targets)
     
     ;show intentions
   ]
@@ -257,12 +257,12 @@ to search-ways-for-enemies
     let id ([who] of ?)
     ; On ne calcule un chemin QUE si c'est nécessaire : obstacle entre soi et la target
     if empty? [my-path] of ?
-    and not [obstacle?] of [patch-here] of [get-belief-enemy "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
+    and not [obstacle?] of [patch-here] of [intelligent-get-belief "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
                                                                               ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
       let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
       let tmp astar-longpath
       set astar-longpath false
-      let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [get-belief-enemy "target"] of ? false)
+      let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [intelligent-get-belief "target"] of ? false)
       set astar-longpath tmp
       ask ? [ set my-path path ]
     ]
@@ -284,27 +284,10 @@ end
 ;; BELIEFS ;;
 ;;;;;;;;;;;;;
 
-; Mise à jour du belief bel si ce belief existe, sinon ajout
-to update-belief-enemy [bel]
-  ifelse exist-beliefs-of-type belief-type bel
-    [
-      update-belief bel
-    ]
-    [
-      add-belief bel
-    ]
-end
-
-; Récupération du belief voulu par son type
-to-report get-belief-enemy [b-type]
-  report belief-content read-first-belief-of-type b-type
-end
-
 ; Indique que l'ennemi a un belief "target"
 to-report exists-belief-target
   report exist-beliefs-of-type "target"
 end
-
 
 ;;;;;;;;;;;;;;;;
 ;; INTENTIONS ;;

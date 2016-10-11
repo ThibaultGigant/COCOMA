@@ -5,9 +5,7 @@ __includes ["src/functions-astar.nls"
             "src/bdi.nls"
             "src/communication.nls"
             "src/drones.nls"
-            "src/drones-communications.nls"
-            "src/convois-communications.nls"
-            "src/functions-bdi.nls"]
+            "src/drones-communications.nls"]
 
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
@@ -39,9 +37,7 @@ convois-own[incoming-queue
   dead?
   speed maxdir ; maximal speed of a car, and max angle
   last-send-time ; communication historical time-stamp
-  beliefs
-  intentions
-]
+  ]
 
 
 ;***********************
@@ -218,10 +214,6 @@ to setup-convois
       set genlongpath? false
       set dead? false
 
-      set beliefs ([])
-      setup-convois-beliefs
-      set intentions ([])
-
       ; Visu
       set label who ; display the car names
     ]
@@ -356,7 +348,7 @@ INPUTBOX
 70
 115
 nb-cars
-6
+3
 1
 0
 Number
@@ -473,7 +465,7 @@ SWITCH
 316
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -579,7 +571,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+10
 1
 0
 Number
@@ -633,7 +625,7 @@ enemies-vision-radius
 enemies-vision-radius
 0
 100
-20
+16
 1
 1
 NIL
@@ -663,7 +655,7 @@ safe-distance
 safe-distance
 0
 30
-5
+4
 1
 1
 NIL
@@ -675,7 +667,7 @@ INPUTBOX
 418
 115
 nb-drones
-6
+0
 1
 0
 Number
@@ -744,7 +736,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-162
+243
 1
 1
 NIL
@@ -1220,7 +1212,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

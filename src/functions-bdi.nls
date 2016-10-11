@@ -1,0 +1,20 @@
+;;;;;;;;;;;;;
+;; BELIEFS ;;
+;;;;;;;;;;;;;
+
+; Mise à jour du belief bel si ce belief existe, sinon ajout
+to intelligent-update-belief [b-type b-value]
+  let bel create-belief b-type b-value
+  ifelse exist-beliefs-of-type belief-type bel
+    [
+      update-belief bel
+    ]
+    [
+      add-belief bel
+    ]
+end
+
+; Récupération du belief voulu par son type
+to-report intelligent-get-belief [b-type]
+  report belief-content read-first-belief-of-type b-type
+end

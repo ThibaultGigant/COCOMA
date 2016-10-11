@@ -69,6 +69,11 @@ to convois-think
         if not to-protect? [ set color orange ]
       ]
     ]
+    
+    ask convois with [not finished? and not dead?] [
+      recrutement-drones
+    ]
+    
   ]
 end
 
@@ -151,3 +156,9 @@ to move-convoi [goal slowdown? cortege?]
   fd tmp-speed ; Avance
 end
 
+to setup-convois-beliefs
+  
+  intelligent-update-belief "nb-protecteurs" 0
+  intelligent-update-belief "max-protecteurs" 5 ; pour les tests
+  
+end

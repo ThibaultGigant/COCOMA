@@ -3,22 +3,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Drones potégeant un vonvoi ;;
+;; Drones potégeant un convoi ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Le drone demande au convoi s'il y a encore de la place
 ;; pour le protéger
 to enrollement
-  set show_messages true
-  let etat get-belief-drones "etat enrollement"
-  let counter get-belief-drones "counter enrollement"
-  let convoi-suivi get-belief-drones "convoi-suivi"
+  set show_messages false
+  let etat intelligent-get-belief "etat enrollement"
+  let counter intelligent-get-belief "counter enrollement"
+  let convoi-suivi intelligent-get-belief "convoi-suivi"
 
   ;; Le drone recherche un convoi
   if etat = "cherche convoi" [
     if convoi-suivi != nobody [
-      update-belief-drones create-belief "etat enrollement" "demande au convoi"
-      update-belief-drones create-belief "counter enrollement" 0
+      intelligent-update-belief "etat enrollement" "demande au convoi"
+      intelligent-update-belief "counter enrollement" 0
     ]
     stop
   ]
@@ -28,8 +28,8 @@ to enrollement
   ;; Si la communication n'aboutit pas au bout d'un certain
   ;; temps, le drone se remettra à la recherche d'un autre convoi   ------ Garder en mémoire les convoi qui ne répondent pas ?
   if counter > max-counter [
-    update-belief-drones create-belief "etat enrollement" "cherche convoi"
-    update-belief-drones create-belief "counter enrollement" 0
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-update-belief "counter enrollement" 0
     stop
   ]
   
@@ -42,20 +42,48 @@ to enrollement
       set msg add-content "enregistrement" msg
       send msg
       
-      show (list "message envoyé : " msg)
+      ;show (list "message envoyé : " msg)
       
-      update-belief-drones create-belief "etat enrollement" "demande envoyée"
-      update-belief-drones create-belief "counter enrollement" 0
+      intelligent-update-belief "etat enrollement" "demande envoyée"
+      intelligent-update-belief "counter enrollement" 0
       stop
     ]
     
-    update-belief-drones create-belief "counter enrollement" (counter + 1)
+    intelligent-update-belief "counter enrollement" (counter + 1)
     stop
   ]
+  ;; Attente de la réponse du leader du convoi
   if etat = "demande envoyée" [
+    let msg get-message
+    if msg != "no_message"
+    [
+      if get-performative msg = "drone-protect"
+      [
+        if get-content msg = "Accept"
+        [
+          intelligent-update-belief "etat enrollement" "suivi"
+          intelligent-update-belief "counter enrollement" 0
+        ]
+        if get-content msg = "Refuse" [ show "Refusé" ]
+      ]
+    ]
     stop
   ]
+  ;; Suivi du convoi
   if etat = "suivi" [
+    let msg get-message
+    if msg != "no_message"
+    [
+      if get-performative msg = "drone-protect"
+      [
+        if get-content msg = "R-U-here?"
+        [
+          let reply create-reply "drone-protect" msg
+          set reply add-content "I'm-here" reply
+          send reply
+        ]
+      ]
+    ]
     stop
   ]
 end

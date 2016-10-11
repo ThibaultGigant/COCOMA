@@ -11,6 +11,7 @@ to split-convoi [ id ] ; id = cars / 2
     ; set color orange
     set color blue
     set astar-longpath not astar-longpath
+    ask my-out-links [die]
   ]
   ; unlink
   ; ask convoi-link id id - 1 die

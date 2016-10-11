@@ -1,0 +1,40 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Convois' communication related code ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Recrutement des drones protecteur ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to recrutement-drones
+  let msg get-message
+  
+  if msg != "no_message" [
+    let sender get-sender msg
+    let nb-protecteurs intelligent-get-belief "nb-protecteurs"
+    let max-protecteurs intelligent-get-belief "max-protecteurs"
+    
+    
+    ;; Gestion des messages liés aux drones protecteurs
+    if get-performative msg = "drone-protect" [
+      
+      ;; Phase d'enregistrement
+      if get-content msg = "enregistrement" [ 
+        ;; Envoi du message
+        let reply create-reply "drone-protect" msg
+        
+        ifelse nb-protecteurs < max-protecteurs
+        [
+          set reply add-content "Accept" reply 
+          ;intelligent-update-belief "drones-protecteurs" (list intelligent-get-belief "drones-protecteurs" [get-sender msg  0])
+          intelligent-update-belief "nb-protecteurs" nb-protecteurs + 1
+        ]
+        [ set reply add-content "Refuse" reply ]
+        
+        send reply
+      ]
+      
+    ]
+  ]
+  
+end

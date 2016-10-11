@@ -74,6 +74,7 @@ to setup-drones
     ;; Statut du drone
     set statu "protect-convoi"
     set intentions ([])
+    set incoming-queue []
     
     set dead? false
     set vision-radius drones-vision-radius
@@ -90,12 +91,12 @@ to setup-drones
     ;;    • base-patch       : Position de la base
     ;;    • last-statu       : Statu avant le rapatriement
     set beliefs ([])
-    update-belief-enemy create-belief "convoi-suivi" nobody
-    update-belief-enemy create-belief "etat enrollement" "cherche convoi"
-    update-belief-enemy create-belief "counter enrollement" 0
+    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-update-belief "counter enrollement" 0
     
-    update-belief-enemy create-belief "base-patch" nobody
-    update-belief-enemy create-belief "last-statu" "enBase"
+    intelligent-update-belief "base-patch" nobody
+    intelligent-update-belief "last-statu" "enBase"
     
     ;; Deplacement
     set speed speed-drones * simu-speed / 1000
@@ -141,16 +142,16 @@ to protect-convoi
 end
 
 to suivi-convoi-drones
-  if get-belief-drones "convoi-suivi" = nobody [
+  if intelligent-get-belief "convoi-suivi" = nobody [
     search-convoi-drones
   ]
-  if get-belief-drones "convoi-suivi" != nobody [
+  if intelligent-get-belief "convoi-suivi" != nobody [
     if not distance-min-drones [
       ; Rotation
-      rotate-drone get-belief-drones "convoi-suivi"
+      rotate-drone intelligent-get-belief "convoi-suivi"
     ]
     ; Déplacement
-    if distance-nowrap get-belief-drones "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
+    if distance-nowrap intelligent-get-belief "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
   ]
   
   ;; Coût du flottement
@@ -158,12 +159,12 @@ to suivi-convoi-drones
 end
 
 to search-convoi-drones
-  let targets convois in-radius-nowrap vision-radius
+  let targets convois with [leader?] in-radius-nowrap vision-radius
   ifelse count targets = 0 [
-    update-belief-drones create-belief "convoi-suivi" nobody
+    intelligent-update-belief "convoi-suivi" nobody
   ]
   [
-    update-belief-drones create-belief "convoi-suivi" first sort-on [distance-nowrap myself] targets
+    intelligent-update-belief "convoi-suivi" first sort-on [distance-nowrap myself] targets
   ]
 end
 
@@ -244,8 +245,8 @@ end
 ;; l'emplacement exacte de la base en tout temps ?
 to ravitaillement-drones
   ifelse not at-base-drones [
-    rotate-drone get-belief-drones "base-patch"
-    fd-drones min (list speed ([distance-nowrap myself] of (get-belief-drones "base-patch") / 20))
+    rotate-drone intelligent-get-belief "base-patch"
+    fd-drones min (list speed ([distance-nowrap myself] of (intelligent-get-belief "base-patch") / 20))
     
     ;; Coût du flottement
     if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
@@ -335,7 +336,7 @@ to check-fuel-drones
   ;; Vérification du carburant restant
   if fuel < fuel-estimate [
     ;; Le drone garde en mémoire la place de la base la plus proche
-    update-belief-drones create-belief "base-patch" tmp
+    intelligent-update-belief "base-patch" tmp
     
     ;; Fin du comportement principal, le drone doit se ravitailler
     let this-intention get-intention
@@ -381,7 +382,7 @@ end
 ;; distance-min-drones       : Vérifie si le drone est trop proche d'un autre
 
 to-report at-base-drones
-  report abs ([pxcor] of get-belief-drones "base-patch" - xcor ) + abs ([pycor] of get-belief-drones "base-patch" - ycor ) < 1
+  report abs ([pxcor] of intelligent-get-belief "base-patch" - xcor ) + abs ([pycor] of intelligent-get-belief "base-patch" - ycor ) < 1
   ;report min [distance-nowrap myself] of patches with [ base? ] <= 1
 end
 
@@ -412,23 +413,4 @@ to-report distance-min-drones
     fd-drones speed
   ]
   report true
-end
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Fonctions pour les Beliefs ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-to update-belief-drones [bel]
-  ifelse exist-beliefs-of-type belief-type bel
-    [
-      update-belief bel
-    ]
-    [
-      add-belief bel
-    ]
-end
-
-to-report get-belief-drones [b-type]
-  report belief-content read-first-belief-of-type b-type
 end

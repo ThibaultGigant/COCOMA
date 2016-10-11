@@ -79,8 +79,11 @@ end
 ; Avance devant à la vitesse de l'ennemi, mais seulement si on le peut (pas d'obstacle)
 to avancer
   ;; Vérification du patch en mire, si ce n'est pas un obstacle et s'il y en a un
-  ifelse not (detect-obstacles-ahead) or detect-agent-ahead
+  ifelse not (detect-obstacles-ahead)
     [
+      if detect-agent-ahead
+      [rt random max-dir]
+      
       fd speed
     ]
   ; sinon on tourne pour essayer de l'éviter
@@ -176,10 +179,12 @@ to-report detect-agent-ahead
   let tmpbool false
   while [ tmp <= speed and tmpbool = false ]
   [
-    set tmpbool [count turtles-here > 0] of patch-ahead tmp
+    set tmpbool [count turtles in-radius safe-distance > 0] of patch-ahead tmp
     set tmp tmp + 0.05  ;; Le pas de 0.05 a été choisi arbitrairement
   ]
   report tmpbool
+  
+  ;report [count turtles in-radius safe-distance > 0] of patch-ahead speed
 end
 
 ; Détecte les obstacles entre la turtle et le patch où il doit se rendre devant lui

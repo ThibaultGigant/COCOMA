@@ -274,7 +274,7 @@ to create-mountains
         and distance min-one-of patches with [objectif?] [distance myself] > mountains-radius
         and distance min-one-of patches with [base?] [distance myself] > mountains-radius
         and distance min-one-of patches with [hangar?] [distance myself] > mountains-radius
-        and pzcor = solAlt ]
+        and pzcor = mapAlt ]
       ask [patches in-radius-nowrap mountains-radius] of tempPatch
       [
         set obstacle? true
@@ -430,7 +430,7 @@ INPUTBOX
 271
 115
 nb-rivers
-2
+0
 1
 0
 Number
@@ -510,7 +510,7 @@ simu-speed
 simu-speed
 0
 10
-1
+2
 1
 1
 NIL
@@ -603,7 +603,7 @@ INPUTBOX
 348
 115
 nb-enemies
-10
+7
 1
 0
 Number
@@ -657,7 +657,7 @@ enemies-vision-radius
 enemies-vision-radius
 0
 100
-20
+9
 1
 1
 NIL

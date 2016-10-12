@@ -81,7 +81,7 @@ end
 to avancer
   ;; Vérification du patch en mire, s'il n'y a pas un agent
   if detect-agent-ahead or detect-obstacles-ahead
-    [rt random max-dir]
+    [rt max-dir]
   
   fd speed
 end
@@ -134,29 +134,6 @@ to shoot-convois-in-range
   
 end
 
-; Rotation de l'ennemi vers sa cible, sans dépasser un angle limite pour garder un certain réalisme
-to rotate-enemy [ goal ]
-  ; Calcul de l'angle avec la cible
-  let headingFlag (towards-nowrap goal)
-  let dirCorrection subtract-headings headingFlag heading
-  
-  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
-  set dirCorrection precision dirCorrection 2
-  
-  ; Limite de l'angle, pour que ce soit plus realiste (l'ennemi ne peut pas faire un demi-tour sur place!)
-  ifelse dirCorrection > max-dir [ ; limite a droite
-    set dirCorrection max-dir
-  ]
-  [
-    if dirCorrection < max-dir * -1 [ ; limite a gauche
-      set dirCorrection max-dir * -1
-    ]
-  ]
-  
-  ; On tourne
-  rt dirCorrection
-end
-
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Fonctions diverses ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -174,7 +151,7 @@ to-report detect-obstacles-ahead
   [ report true ]
   
   ; Vérification que les patchs entre la turtle et le patch visé ne sont pas des obstacles
-  report count patches with [obstacle?] in-cone-nowrap safe-distance 90 > 0
+  report count patches with [obstacle?] in-cone-nowrap 1.5 90 > 0
 end
 
 ; Détecte les obstacles entre la turtle et le patch où se trouve la target
@@ -298,6 +275,7 @@ to update-intentions
     let obstacle-ahead detect-obstacles-enemy-target
     if not obstacle-ahead and (empty? intentions or current-intention != "suivre-target")
     [
+      set my-path []
       add-intention "suivre-target" "detect-obstacles-enemy-target"
     ]
     if obstacle-ahead and (empty? intentions or current-intention != "eviter-obstacle")

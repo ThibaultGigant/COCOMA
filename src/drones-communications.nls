@@ -36,13 +36,8 @@ to enrollement
   ;; Le drone demande au convoi s'il peut le protéger
   if etat = "demande au convoi" [
     if can-communicate-with-convoi convoi-suivi [
-      ;; Envoie du message
-      let msg create-message "drone-protect"
-      set msg add-receiver convoi-suivi msg
-      set msg add-content "enregistrement" msg
-      send msg
-      
-      ;show (list "message envoyé : " msg)
+      ;; Envoi du message
+      send create-complete-msg convoi-suivi "drone-protect" "enregistrement"
       
       intelligent-update-belief "etat enrollement" "demande envoyée"
       intelligent-update-belief "counter enrollement" 0
@@ -55,35 +50,22 @@ to enrollement
   ;; Attente de la réponse du leader du convoi
   if etat = "demande envoyée" [
     let msg get-message
-    if msg != "no_message"
+    if check-message msg "drone-protect" "Accept"
     [
-      if get-performative msg = "drone-protect"
-      [
-        if get-content msg = "Accept"
-        [
-          intelligent-update-belief "etat enrollement" "suivi"
-          intelligent-update-belief "counter enrollement" 0
-        ]
-        if get-content msg = "Refuse" [ show "Refusé" ]
-      ]
+      intelligent-update-belief "etat enrollement" "suivi"
+      intelligent-update-belief "counter enrollement" 0
+    ]
+    if check-message msg "drone-protect" "Refuse"
+    [
+      show "Refusé"
     ]
     stop
   ]
   ;; Suivi du convoi
   if etat = "suivi" [
     let msg get-message
-    if msg != "no_message"
-    [
-      if get-performative msg = "drone-protect"
-      [
-        if get-content msg = "R-U-here?"
-        [
-          let reply create-reply "drone-protect" msg
-          set reply add-content "I'm-here" reply
-          send reply
-        ]
-      ]
-    ]
+    if check-message msg "drone-protect" "R-U-here?"
+    [ send create-complete-reply msg "drone-protect" "I'm-here" ]
     stop
   ]
 end

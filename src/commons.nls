@@ -31,3 +31,31 @@ to rotate-agent [ goal ]
   ; On tourne
   rt dirCorrection
 end
+
+
+;;;;;;;;;;;;;;;;;;;;
+;; Communications ;;
+;;;;;;;;;;;;;;;;;;;;
+
+to-report check-message [msg performative content] 
+  report msg != "no_message" and get-performative msg = performative and get-content msg = content
+end
+
+to-report create-complete-msg [receiver performative content]
+  let msg create-message performative
+  set msg add-receiver receiver msg
+  set msg add-content content msg
+  report msg
+end
+
+to-report create-complete-reply [msg performative content]
+  let reply create-reply performative msg
+  set reply add-content content reply 
+  report reply
+end
+
+to-report get-msg-if-performative [performative]
+  let msg get-message-no-remove
+  if get-performative msg = performative [ report get-message ]
+  report nobody
+end

@@ -19,6 +19,7 @@ to convois-think
         let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
         let new-path plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) (one-of patches with [objectif?]) ([genlongpath?] of ?)
         ; S'il n'y a pas de plan et qu'on a essayé de trouver un long chemin, on attend la prochaine iteration et on reessaie mais avec un plan court
+        show "this is it"
         if empty? new-path and [genlongpath?] of ? [ ask ? [ set genlongpath? false ] ]
         ; S'il n'y a pas deja une entree pour cette voiture on la cree
         ifelse length as-path < (id + 1) [

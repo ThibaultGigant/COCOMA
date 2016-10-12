@@ -65,7 +65,7 @@ to setup
     ]
     ; generate a path and check if the convoi can reach its destination. If not, generate a new env
     [
-      let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) false)
+      let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) astar-longpath)
       set as-path replace-item 0 as-path start-path
       if not empty? start-path [ set path-is-possible? true]
     ]
@@ -116,9 +116,6 @@ to setup-env
 
   ; Herbe
   ask patches with [pzcor = mapAlt][set pcolor green + (random-float 2) - 1]
-
-  ; Montagnes
-
 
   ; Rivieres
   if nb-rivers > 0 [
@@ -181,6 +178,9 @@ to setup-env
   ; Batiment (pour faire joli, ne sert a rien fonctionnellement)
   ask patches with[pzcor <= solAlt and pxcor >= 0 and pxcor < 3 and pycor >= 0 and pycor < 5][set pcolor 3 set obstacle? true set base? false set hangar? false] ; Batiment
   ask patches with [pzcor < 5 and pxcor = 0 and pycor = 0 and pzcor > 0 ] [ set pcolor 3 set obstacle? true set base? false set hangar? false] ; Antenne
+
+  ; Montagnes
+  create-mountains
 
   ; Copie des obstacles: on s'assure que les patchs au niveau solAlt ont la meme valeur obstacle? que leur patch en-dessous au niveau mapAlt (assure que enemy-random-move fonctionne bien et facilite la detection des obstacles car pas besoin de regarder au niveau mapAlt mais directement dans les patchs solAlt)
   ask patches with [[obstacle?] of patch-at 0 0 -1] [set obstacle? true]
@@ -263,6 +263,29 @@ to setup-convois
   ]
 end
 
+to create-mountains
+  ; Création des montagnes
+  let mountains-radius 5
+    let counter 0
+    while [counter < nb-mountains]
+    [
+      ; Sélection du centre de la montagne à créer, à distance raisonnable de ce qui a déjà été créé
+      let tempPatch one-of patches with [not obstacle?
+        and distance min-one-of patches with [objectif?] [distance myself] > mountains-radius
+        and distance min-one-of patches with [base?] [distance myself] > mountains-radius
+        and distance min-one-of patches with [hangar?] [distance myself] > mountains-radius
+        and pzcor = solAlt ]
+      ask [patches in-radius-nowrap mountains-radius] of tempPatch
+      [
+        set obstacle? true
+        set pcolor brown - 3
+      ]
+      set counter counter + 1
+    ]
+
+
+end
+
 to go
   convois-think
   enemies-think
@@ -278,7 +301,7 @@ to reset
   setup-convois
   setup-enemies
   setup-drones
-  let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) false)
+  let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) astar-longpath)
   set as-path replace-item 0 as-path start-path
 end
 
@@ -312,7 +335,7 @@ GRAPHICS-WINDOW
 0
 70
 0
-3
+6
 1
 0
 1
@@ -429,7 +452,7 @@ INPUTBOX
 637
 330
 astar-max-depth
-10000
+100000
 1
 0
 Number
@@ -676,7 +699,7 @@ INPUTBOX
 418
 115
 nb-drones
-3
+0
 1
 0
 Number

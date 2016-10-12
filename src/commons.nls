@@ -6,8 +6,11 @@
 ; Rotation de l'agent vers sa cible, sans dépasser un angle limite pour garder un certain réalisme
 to rotate-agent [ goal ]
   ; Si le drone se trouve à l'endroit souhaité (modulo l'altitude)
+  if is-turtle? goal and [xcor] of goal = xcor and [ycor] of goal = ycor or 
+  is-patch? goal and [pxcor] of goal = xcor and [pycor] of goal = ycor [
+    stop
+  ]
   
-     
   ; Calcul de l'angle avec la cible
   let headingFlag (towards-nowrap goal)
   let dirCorrection subtract-headings headingFlag heading

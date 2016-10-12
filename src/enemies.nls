@@ -51,11 +51,11 @@ to setup-enemies
     set shoot-radius enemies-shoot-radius
     set speed 0.05 * simu-speed
     set max-dir 10 * simu-speed
-    set my-path ([])
+    set my-path []
     set dead? false
     
-    set beliefs ([])
-    set intentions ([])
+    set beliefs []
+    set intentions []
     
     ;; ASPECT
     set shape "truck"
@@ -79,18 +79,11 @@ end
 
 ; Avance devant à la vitesse de l'ennemi, mais seulement si on le peut (pas d'obstacle)
 to avancer
-  ;; Vérification du patch en mire, si ce n'est pas un obstacle et s'il y en a un
-  ifelse not (detect-obstacles-ahead)
-    [
-      if detect-agent-ahead
-      [rt random max-dir]
-      
-      fd speed
-    ]
-  ; sinon on tourne pour essayer de l'éviter
-    [
-      rt random max-dir
-    ]
+  ;; Vérification du patch en mire, s'il n'y a pas un agent
+  if detect-agent-ahead or detect-obstacles-ahead
+    [rt random max-dir]
+  
+  fd speed
 end
 
 ; Mouvement randomisé, principalement pour le début de la simulation
@@ -98,21 +91,19 @@ to random-move-nowrap
   ;; Changement de cap selon probabilité
   if random 100 < 1 
   [ lt random max-dir * one-of [ 1 -1 ] ]
-  
   avancer
 end
 
 ; Mouvement vers un patch spécifique, principalement utilisé pour le mouvement astar
 to move-to-patch [ patch-target ]
   rotate-agent patch-target
-  avancer
-  
+  fd speed
 end
 
 ; Mouvement le long d'un chemin astar calculé précédemment
 to move-to-target-astar
   ; Vérification qu'on a bien un chemin astar en mémoire
-  ifelse not empty? my-path 
+  if not empty? my-path 
   [
     let next-patch first my-path
     let zz pzcor
@@ -125,9 +116,6 @@ to move-to-target-astar
       set my-path remove-item 0 my-path
       if debug [ show (word "Waypoint atteint: " patch-here ", prochain: " next-patch ) ]
     ]
-  ]
-  [
-    show "move-to-target-astar: no path to follow"
   ]
 end
 
@@ -176,16 +164,7 @@ end
 ; détecte si une turtle se trouve entre l'ennemi et la case où il veut aller
 to-report detect-agent-ahead
   ; Vérification que les patchs entre la turtle et le patch visé ne sont pas occupés
-  let tmp 0
-  let tmpbool false
-  while [ tmp <= speed and tmpbool = false ]
-  [
-    set tmpbool [count turtles in-radius safe-distance > 0] of patch-ahead tmp
-    set tmp tmp + 0.05  ;; Le pas de 0.05 a été choisi arbitrairement
-  ]
-  report tmpbool
-  
-  ;report [count turtles in-radius safe-distance > 0] of patch-ahead speed
+  report count other turtles in-cone-nowrap safe-distance 90 > 0
 end
 
 ; Détecte les obstacles entre la turtle et le patch où il doit se rendre devant lui
@@ -195,14 +174,7 @@ to-report detect-obstacles-ahead
   [ report true ]
   
   ; Vérification que les patchs entre la turtle et le patch visé ne sont pas des obstacles
-  let tmp 0
-  let tmpbool false
-  while [ tmp <= speed and tmpbool = false ]
-  [
-    set tmpbool [obstacle?] of patch-ahead tmp
-    set tmp tmp + 0.05  ;; Le pas de 0.05 a été choisi arbitrairement
-  ]
-  report tmpbool
+  report count patches with [obstacle?] in-cone-nowrap safe-distance 90 > 0
 end
 
 ; Détecte les obstacles entre la turtle et le patch où se trouve la target
@@ -261,10 +233,7 @@ to search-ways-for-enemies
     and not [obstacle?] of [patch-here] of [intelligent-get-belief "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
                                                                               ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
       let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
-;      let tmp astar-longpath
-;      set astar-longpath false
       let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [intelligent-get-belief "target"] of ? false)
-;      set astar-longpath tmp
       ask ? [ set my-path path ]
     ]
   ]

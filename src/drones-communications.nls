@@ -9,17 +9,13 @@
 ;; Le drone demande au convoi s'il y a encore de la place
 ;; pour le protéger
 to enrollement
-  set show_messages false
   let etat intelligent-get-belief "etat enrollement"
   let counter intelligent-get-belief "counter enrollement"
-  let convoi-suivi intelligent-get-belief "convoi-suivi"
+;  let convoi-suivi intelligent-get-belief "convoi-suivi"
 
   ;; Le drone recherche un convoi
   if etat = "cherche convoi" [
-    if convoi-suivi != nobody [
-      intelligent-update-belief "etat enrollement" "demande au convoi"
-      intelligent-update-belief "counter enrollement" 0
-    ]
+    enrollement-cherche-convoi
     stop
   ]
   
@@ -35,41 +31,77 @@ to enrollement
   
   ;; Le drone demande au convoi s'il peut le protéger
   if etat = "demande au convoi" [
-    if can-communicate-with-convoi convoi-suivi [
-      ;; Envoi du message
-      send create-complete-msg convoi-suivi "drone-protect" "enregistrement"
-      
-      intelligent-update-belief "etat enrollement" "demande envoyée"
-      intelligent-update-belief "counter enrollement" 0
-      stop
-    ]
-    
-    intelligent-update-belief "counter enrollement" (counter + 1)
+    enrollement-demande-au-convoi
     stop
   ]
   ;; Attente de la réponse du leader du convoi
   if etat = "demande envoyée" [
-    let msg get-message
-    if check-message msg "drone-protect" "Accept"
-    [
-      intelligent-update-belief "etat enrollement" "suivi"
-      intelligent-update-belief "counter enrollement" 0
-    ]
-    if check-message msg "drone-protect" "Refuse"
-    [
-      show "Refusé"
-    ]
+    enrollement-demande-envoyee
     stop
   ]
   ;; Suivi du convoi
   if etat = "suivi" [
-    let msg get-message
-    if check-message msg "drone-protect" "R-U-here?"
-    [ send create-complete-reply msg "drone-protect" "I'm-here" ]
+    enrollement-suivi
     stop
   ]
 end
 
 to-report can-communicate-with-convoi [target]
   report [distance-nowrap myself] of target < communication-radius-drones
+end
+
+to enrollement-cherche-convoi
+  let convoi-suivi intelligent-get-belief "convoi-suivi"
+  
+  if convoi-suivi != nobody [
+    intelligent-update-belief "etat enrollement" "demande au convoi"
+    intelligent-update-belief "counter enrollement" 0
+    stop
+  ]
+  
+  add-One-to-counter
+end
+
+to enrollement-demande-au-convoi
+  let convoi-suivi intelligent-get-belief "convoi-suivi"
+  
+  if can-communicate-with-convoi convoi-suivi [
+    ;; Envoi du message
+    send create-complete-msg convoi-suivi "drone-protect" "enregistrement"
+    
+    intelligent-update-belief "etat enrollement" "demande envoyée"
+    intelligent-update-belief "counter enrollement" 0
+    stop
+  ]
+  
+  add-One-to-counter
+end
+
+to enrollement-demande-envoyee
+  let msg get-message
+  if check-message msg "drone-protect" "Accept"
+    [
+      intelligent-update-belief "etat enrollement" "suivi"
+      intelligent-update-belief "counter enrollement" 0
+      stop
+    ]
+  if check-message msg "drone-protect" "Refuse"
+    [
+      intelligent-update-belief "etat enrollement" "cherche-convoi"
+      intelligent-update-belief "counter enrollement" 0
+      show "Refusé"
+      stop
+    ]
+    
+  add-One-to-counter
+end
+
+to enrollement-suivi
+  let msg get-message
+  if check-message msg "drone-protect" "R-U-here?"
+    [ send create-complete-reply msg "drone-protect" "I'm-here" ]
+end
+
+to add-One-to-counter
+  intelligent-update-belief "counter enrollement" (intelligent-get-belief "counter enrollement" + 1)
 end

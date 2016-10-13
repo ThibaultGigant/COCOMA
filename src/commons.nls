@@ -32,6 +32,9 @@ to rotate-agent [ goal ]
   rt dirCorrection
 end
 
+to-report distance-nowrap-noZAxis [ source target ]
+  report [distance-nowrap source] of target - abs ([zcor] of source - [pzcor] of target)
+end
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; Communications ;;

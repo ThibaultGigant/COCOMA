@@ -26,7 +26,6 @@ globals [mapAlt solAlt basseAlt hauteAlt ; variables topologiques Z discretise: 
   mission-completed? mission-failed?
   send-interval ; communication period
   is-movie-recording?
-  show_messages
   ]
 
 patches-own [obstacle? base? hangar? objectif? bridge? ; variables topologiques au niveau mapAlt, permet de definir les patchs praticables et ceux qui sont des obstacles
@@ -75,6 +74,8 @@ to setup
   setup-enemies
   ;setup-citizens
 ;  setup-hq
+
+  set show_messages true
 
   setup-precache
   display ; reenable gui display
@@ -301,6 +302,17 @@ to reset
   setup-convois
   setup-enemies
   setup-drones
+  let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) astar-longpath)
+  set as-path replace-item 0 as-path start-path
+end
+
+to soft-reset
+  setup-globals
+  ask convois [ die ]
+  ask enemies [ die ]
+  setup-convois
+  setup-enemies
+  soft-reset-drones
   let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) astar-longpath)
   set as-path replace-item 0 as-path start-path
 end
@@ -566,7 +578,7 @@ NIL
 BUTTON
 17
 425
-87
+89
 458
 NIL
 reset
@@ -583,7 +595,7 @@ NIL
 BUTTON
 99
 426
-211
+162
 459
 NIL
 split
@@ -603,7 +615,7 @@ INPUTBOX
 348
 115
 nb-enemies
-7
+0
 1
 0
 Number
@@ -657,7 +669,7 @@ enemies-vision-radius
 enemies-vision-radius
 0
 100
-9
+22
 1
 1
 NIL
@@ -699,7 +711,7 @@ INPUTBOX
 418
 115
 nb-drones
-0
+6
 1
 0
 Number
@@ -723,7 +735,7 @@ max-alt-drones
 max-alt-drones
 0
 100
-2
+3
 1
 1
 NIL
@@ -768,7 +780,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-162
+52
 1
 1
 NIL
@@ -881,7 +893,7 @@ INPUTBOX
 820
 116
 max-counter
-0
+15
 1
 0
 Number
@@ -900,6 +912,34 @@ communication-radius-drones
 1
 NIL
 HORIZONTAL
+
+BUTTON
+18
+464
+90
+498
+NIL
+soft-reset
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+460
+98
+606
+131
+show_messages
+show_messages
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1244,7 +1284,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

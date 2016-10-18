@@ -161,7 +161,7 @@ end
 to setup-convois-beliefs
   
   intelligent-update-belief "nb-protecteurs" 0
-  intelligent-update-belief "max-protecteurs" 3 ; pour les tests
+  intelligent-update-belief "max-protecteurs" 0 ; pour les tests
   
   intelligent-update-belief "drones-protecteurs" ([])
   

@@ -23,7 +23,7 @@ to recrutement-drones
         ;; Envoi du message
         let reply create-reply "drone-protect" msg
         
-        ifelse nb-protecteurs < max-protecteurs
+        ifelse nb-protecteurs < max-protecteurs or member? sender intelligent-get-belief "drones-protecteurs"
         [
           set reply add-content "Accept" reply
           intelligent-update-belief "drones-protecteurs" (lput (list (get-sender msg) 0) intelligent-get-belief "drones-protecteurs")

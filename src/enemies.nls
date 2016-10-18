@@ -68,7 +68,7 @@ to setup-enemies
     
     ;; INTENTIONS ajoutées aux ennemis
     ; add-intention "attack-convois" "false"
-    add-intention "chercher-target" "exists-belief-target"
+    ; add-intention "chercher-target" "exists-belief-target"
   ]
 end
 
@@ -79,17 +79,20 @@ end
 
 ; Avance devant à la vitesse de l'ennemi, mais seulement si on le peut (pas d'obstacle)
 to avancer
-  ;; Vérification du patch en mire, s'il n'y a pas un agent
-  if detect-agent-ahead or detect-obstacles-ahead
-    [rt max-dir]
-  
-  fd speed
+  ;; Vérification du patch en mire, s'il n'y a pas un agent ou d'obstacle
+  ifelse detect-agent-ahead or detect-obstacles-ahead
+    [
+      rt random max-dir * 2 - max-dir
+    ]
+    [
+      fd speed
+    ]
 end
 
 ; Mouvement randomisé, principalement pour le début de la simulation
 to random-move-nowrap
   ;; Changement de cap selon probabilité
-  if random 100 < 1 
+  if random 100 < 5 
   [ lt random max-dir * one-of [ 1 -1 ] ]
   avancer
 end
@@ -140,18 +143,12 @@ end
 
 ; détecte si une turtle se trouve entre l'ennemi et la case où il veut aller
 to-report detect-agent-ahead
-  ; Vérification que les patchs entre la turtle et le patch visé ne sont pas occupés
-  report count other turtles in-cone-nowrap safe-distance 90 > 0
+  report detect-agent-between-target patch-at-heading-and-distance heading (speed + safe-distance)
 end
 
 ; Détecte les obstacles entre la turtle et le patch où il doit se rendre devant lui
 to-report detect-obstacles-ahead
-  ; Vérification qu'on ne va pas dans le vide
-  if abs (xcor - [pxcor] of patch-ahead speed) > speed + 5 or abs (ycor - [pycor] of patch-ahead speed) > speed + 5
-  [ report true ]
-  
-  ; Vérification que les patchs entre la turtle et le patch visé ne sont pas des obstacles
-  report count patches with [obstacle?] in-cone-nowrap 1.5 90 > 0
+  report detect-obstacle-between-target patch-at-heading-and-distance heading (speed + safe-distance)
 end
 
 ; Détecte les obstacles entre la turtle et le patch où se trouve la target
@@ -208,7 +205,7 @@ to search-ways-for-enemies
     ; On ne calcule un chemin QUE si c'est nécessaire : obstacle entre soi et la target
     if empty? [my-path] of ?
     and not [obstacle?] of [patch-here] of [intelligent-get-belief "target"] of ? [ ; s'il n'y a pas encore de chemin du tout, ou pas de chemin pour cette voiture, on cree un plan AStar
-                                                                              ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
+                                                                                    ; Cree le plan AStar (attention a ca que le patch start soit au niveau ou il y a les obstacles, ici pzcor = mapAlt pour les obstacles)
       let start-patch min-one-of (patches with [pzcor = mapAlt and not obstacle?]) [distance ?] ; on s'assure de choisir comme patch de depart un patch libre sans obstacle, sinon quand on split un convoi il se peut qu'il soit sur un obstacle et qu'il ne puisse jamais generer de chemin
       let path (plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) [patch-here] of [intelligent-get-belief "target"] of ? false)
       ask ? [ set my-path path ]
@@ -221,9 +218,9 @@ to enemies-think
   search-ways-for-enemies
   
   ask enemies [
+    update-intentions
     execute-intentions
     ;    shoot-convois-in-range
-    update-intentions
   ]
 end
 
@@ -275,11 +272,13 @@ to update-intentions
     let obstacle-ahead detect-obstacles-enemy-target
     if not obstacle-ahead and (empty? intentions or current-intention != "suivre-target")
     [
+      if (not empty? intentions) and current-intention != "suivre-target" [pop-intention]
       set my-path []
       add-intention "suivre-target" "detect-obstacles-enemy-target"
     ]
     if obstacle-ahead and (empty? intentions or current-intention != "eviter-obstacle")
     [
+      if (not empty? intentions) and current-intention != "eviter-obstacle" [pop-intention]
       add-intention "eviter-obstacle" "not detect-obstacles-enemy-target"  
     ]
   ]

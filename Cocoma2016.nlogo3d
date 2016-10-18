@@ -442,7 +442,7 @@ INPUTBOX
 271
 115
 nb-rivers
-0
+3
 1
 0
 Number
@@ -476,7 +476,7 @@ SWITCH
 227
 astar-longpath
 astar-longpath
-0
+1
 1
 -1000
 
@@ -509,7 +509,7 @@ SWITCH
 316
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -522,7 +522,7 @@ simu-speed
 simu-speed
 0
 10
-2
+1
 1
 1
 NIL
@@ -615,7 +615,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+3
 1
 0
 Number
@@ -711,7 +711,7 @@ INPUTBOX
 418
 115
 nb-drones
-6
+0
 1
 0
 Number
@@ -937,7 +937,7 @@ SWITCH
 131
 show_messages
 show_messages
-1
+0
 1
 -1000
 

@@ -105,3 +105,18 @@ end
 to add-One-to-counter
   intelligent-update-belief "counter enrollement" (intelligent-get-belief "counter enrollement" + 1)
 end
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Partage des connaissances ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Regroupement des connaissances
+to-report send-knowledges-drones
+  let content fput (list ticks self patch-here statu dead? health fuel) intelligent-get-belief "K-Infos-Drones"
+  let msg create-complete-msg ([self] of other drones) "knowledge" fput content [[]]
+  
+  send msg
+  
+  report msg
+end

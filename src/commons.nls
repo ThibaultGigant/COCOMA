@@ -84,7 +84,11 @@ end
 
 to-report create-complete-msg [receiver performative content]
   let msg create-message performative
-  set msg add-receiver receiver msg
+  
+  ifelse is-list? receiver
+  [ set msg add-multiple-receivers receiver msg ]
+  [ set msg add-receiver receiver msg ]
+  
   set msg add-content content msg
   report msg
 end
@@ -99,4 +103,108 @@ to-report get-msg-if-performative [performative]
   let msg get-message-no-remove
   if get-performative msg = performative [ report get-message ]
   report nobody
+end
+
+;;;;;;;;;;;;;;;;;;;
+;; Connaissances ;;
+;;;;;;;;;;;;;;;;;;;
+
+;; Structure représentant les connaissances de chaque drones
+;; et de chaque convoi concernant leurs alliés
+;; ---
+;; Liste [Infos-Drones, Infos-Convois]
+;; • Info-Drones
+;;   Liste [ticks, turtle, position, role, dead?, health, fuel]
+;;   o ticks       : Date de l'observation
+;;   o turle       : Drone concerné
+;;   o position    : Patch où se trouvait le drone
+;;   o role        : Role du drone
+;;   o dead?       : Etat du drone (vivant / mort)
+;;   o health      : Points de vie restants au drone
+;;   o fuel        : Carburant restant au drone
+;; • Info-Convoi
+;;   Liste [ticks, turtle, position, role, dead?, health]
+;;   --- Idem, sans le champs "fuel"
+
+;; Fusion de connaissances
+to-report update-knowledges-drones [new-knowledges]  
+  if get-performative new-knowledges = "knowledge"
+  [
+    ;; Récupération des connaissances
+    let content get-content new-knowledges
+    
+    ;; Récupération de la liste des croyances sur les drones
+    let Infos-Drones K-get-Infos-Drones content
+    
+    let tick-of-K 0
+    
+    ;; Pour chaque drone
+    foreach Infos-Drones
+    [
+      ;; Récupération de nos croyance concernant ce drone
+      show content
+      show new-knowledges
+      let current-info-drone K-get-drone K-get-turtle content
+      
+      let flag false
+      ifelse current-info-drone = [] 
+      [ set flag true ]
+      [ if tick-of-K > K-get-tick current-info-drone [set flag true ] ]
+      
+      
+      
+      ;; Vérification de la date des croyances
+      set tick-of-K K-get-tick ?
+      if flag
+      [
+        ;; Update
+        ifelse current-info-drone = []
+        [
+          intelligent-update-belief "K-Infos-Drones" lput content intelligent-get-belief "K-Infos-Drones"
+        ]
+        [
+        ]
+        
+        show (list "Update" ?)
+      ]
+    ]
+    
+    ;; Récupération de la liste des croyances sur les convois
+    let Infos-Convois K-get-Infos-Convois content
+    
+    ;; Pour chaque convoi
+    foreach Infos-Convois
+    [
+      ;; Récupération de nos croyance concernant ce drone
+      let current-info-convoi K-get-convoi K-get-turtle content
+      
+      ;; Vérification de la date des croyances
+      set tick-of-K K-get-tick ?
+      if tick-of-K > K-get-tick current-info-convoi
+      [
+        ;; Update
+      ]
+    ]
+  ]
+  
+  report nobody
+end
+
+to-report K-get-Infos-Drones  [K] report item 0 K end
+to-report K-get-Infos-Convois [K] report item 1 K end
+
+to-report K-get-tick     [K] report item 0 K end
+to-report K-get-turtle   [K] report item 1 K end
+to-report K-get-position [K] report item 2 K end
+to-report K-get-role     [K] report item 3 K end
+to-report K-get-health   [K] report item 4 K end
+to-report K-get-dead?    [K] report item 5 K end
+to-report K-get-fuel     [K] report item 6 K end
+
+to-report K-get-drone  [drone]
+  report (filter [member? drone ?]  intelligent-get-belief "K-Infos-Drones")
+end
+
+to-report K-get-convoi [convoi]
+  report (filter [member? convoi ?] intelligent-get-belief "K-Infos-Convois")
 end

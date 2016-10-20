@@ -12,10 +12,14 @@ drones-own [
   ;;    • attaquant               : Le drone attaque les ennemis
   ;;    • ravitailleur            : Le drone ravitaille les autres drones
   ;;    • surveillant             : Le drone surveille le terrain
+  ;; • initial-health             : Nombre de points de vie initiaux du drone
+  ;; • health                     : Nombre de points de vie restants au drone
   ;;
   ;; • intentions                 : Liste des intentions du drone, pour la BDI
   ;; • incoming-queue             : Liste des messages reçus
   statu
+  initial-health
+  health
   intentions
   incoming-queue
   
@@ -26,6 +30,10 @@ drones-own [
 
   ;; Beliefs
   ;; ---
+  ;;   Connaissances
+  ;;   ---
+  ;;   • K-Infos-Drones           : Liste des connaissances sur les autres drones
+  ;;   • K-Infos-Convois          : Liste des connaissances sur les autres convois
   ;;   Suivi
   ;;   ---
   ;;   • convoi-suivi             : Convoi que le drone suit et protège
@@ -74,6 +82,8 @@ to setup-drones
     ;; ---
     ;; Statut du drone
     set statu "protect-convoi"
+    set initial-health max-health-drones
+    set health initial-health
     set intentions ([])
     set incoming-queue []
     
@@ -82,6 +92,10 @@ to setup-drones
     
     ;; Beliefs
     ;; ---
+    ;;   Connaissances
+    ;;   ---
+    ;;   • K-Infos-Drones           : Liste des connaissances sur les autres drones
+    ;;   • K-Infos-Convois          : Liste des connaissances sur les autres convois
     ;;   Suivi
     ;;   ---
     ;;    • convoi-suivi             : Convoi que le drone suit et protège
@@ -93,6 +107,8 @@ to setup-drones
     ;;    • base-patch               : Position de la base
     ;;    • last-statu               : Statu avant le rapatriement
     set beliefs ([])
+    intelligent-update-belief "K-Infos-Drones" []
+    intelligent-update-belief "K-Infos-Convois" []
     intelligent-update-belief "convoi-suivi" nobody
     intelligent-update-belief "convoi-already-protected" []
     intelligent-update-belief "etat enrollement" "cherche convoi"
@@ -189,7 +205,18 @@ to drones-think
     ;show intelligent-get-belief "convoi-suivi"
     execute-intentions
     
-    check-fuel-drones  
+    check-fuel-drones
+    
+    show (list "Timon" intelligent-get-belief "K-Infos-Drones")
+    
+    ;; Connaissances
+    let a send-knowledges-drones
+    
+    let new-knowledge get-msg-if-performative "knowledge"
+    if new-knowledge != nobody
+    [
+      let b update-knowledges-drones new-knowledge
+    ]
   ]
 end
 
@@ -363,7 +390,13 @@ end
 to-report demande-au-convoi-drones-done
   if intelligent-get-belief "etat enrollement" != "demande au convoi"
   [
-    add-intention "demande-envoyee-drones" "demande-envoyee-drones-done"
+    ifelse intelligent-get-belief "etat enrollement" = "demande envoyee"
+    [ add-intention "demande-envoyee-drones" "demande-envoyee-drones-done" ]
+    [
+      intelligent-update-belief "etat enrollement" "cherche-convoi"
+      intelligent-update-belief "convoi-suivi" nobody
+      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+    ]
     report true
   ]
   report false

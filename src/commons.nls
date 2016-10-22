@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Fonctions communes aux différents agents ;;
+;; Fonctions diverses communes aux différents agents ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -34,6 +34,19 @@ end
 
 to-report distance-nowrap-noZAxis [ source target ]
   report [distance-nowrap source] of target - abs ([zcor] of source - [pzcor] of target)
+end
+
+to-report detect-convois-in-vision
+  let targets convois in-radius-nowrap vision-radius
+  let retour []
+  foreach sort-on [distance myself] targets
+  [
+    if abs subtract-headings [heading] of ? heading < vision-angle / 2
+    [
+      set retour lput ? retour
+    ]
+  ]
+  report retour
 end
 
 to-report detect-agent-between-target [target]

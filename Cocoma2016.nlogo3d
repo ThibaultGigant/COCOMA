@@ -317,7 +317,7 @@ to soft-reset
   set as-path replace-item 0 as-path start-path
 end
 
-;;;;;;;;;;;;;;;;;;; DON'T FORGET DON CAMILLO ;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;; DON'T FORGET DON CAMILLO : TODO ;;;;;;;;;;;;;;;;;;;;;;;
 ; Verifie si les leaders sont toujours en vie
 ; Reafecte le poste selon les cas
 to check-leaders
@@ -476,7 +476,7 @@ SWITCH
 227
 astar-longpath
 astar-longpath
-1
+0
 1
 -1000
 
@@ -509,7 +509,7 @@ SWITCH
 316
 astar-visu
 astar-visu
-1
+0
 1
 -1000
 
@@ -711,7 +711,7 @@ INPUTBOX
 418
 115
 nb-drones
-2
+0
 1
 0
 Number
@@ -937,7 +937,7 @@ SWITCH
 131
 show_messages
 show_messages
-1
+0
 1
 -1000
 
@@ -955,6 +955,31 @@ max-health-drones
 1
 NIL
 HORIZONTAL
+
+SLIDER
+281
+597
+496
+630
+vision-angle
+vision-angle
+10
+180
+180
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+284
+569
+434
+587
+Variables communes
+12
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1299,7 +1324,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

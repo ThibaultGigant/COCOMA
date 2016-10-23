@@ -76,9 +76,9 @@ end
 ; Avance devant à la vitesse de l'ennemi, mais seulement si on le peut (pas d'obstacle)
 to avancer
   ;; Vérification du patch en mire, s'il n'y a pas un agent ou d'obstacle
-  ifelse detect-agent-ahead or detect-obstacles-ahead
+  ifelse (detect-agent-ahead or detect-obstacles-ahead)
     [
-      rt random max-dir * 2 - max-dir
+      rt max-dir / 2 + random (max-dir / 2)
     ]
     [
       fd speed
@@ -89,7 +89,7 @@ end
 to random-move-nowrap
   ;; Changement de cap selon probabilité
   if random 100 < 5 
-  [ lt random max-dir * one-of [ 1 -1 ] ]
+  [ lt random max-dir * one-of [ 1 -1 ] ] ;; Choix vers la gauche ou la droite
   avancer
 end
 
@@ -125,7 +125,9 @@ to move-to-target
   ; On avance
   if distance intelligent-get-belief "target" > enemies-shoot-radius / 3
     [
-      avancer
+      ifelse not detect-agent-ahead
+      [ fd speed ]
+      [ rt max-dir / 2 + random (max-dir / 2) ]
     ]
 end
 
@@ -215,8 +217,9 @@ to enemies-think
   search-ways-for-enemies
   
   ask enemies [
-    update-intentions
     execute-intentions
+    update-intentions
+    if show-intentions and empty? intentions [ show intentions ]
     ;    shoot-convois-in-range
   ]
 end
@@ -261,22 +264,28 @@ end
 ; Mise à jour des intentions selon les situations
 to update-intentions
   ; Sans target, on en cherche une, sinon on la poursuit
-  ifelse not exists-belief-target
+  ifelse not exists-belief-target and empty? my-path
   [
-    add-intention "chercher-target" "exists-belief-target"
+    set my-path []
+    if empty? intentions or current-intention != "chercher-target"
+    [ add-intention "chercher-target" "exists-belief-target" ]
   ]
   [
-    let obstacle-ahead detect-obstacles-enemy-target
-    if not obstacle-ahead and (empty? intentions or current-intention != "suivre-target")
+    if exists-belief-target
     [
-      if (not empty? intentions) and current-intention != "suivre-target" [pop-intention]
-      set my-path []
-      add-intention "suivre-target" "detect-obstacles-enemy-target"
+      let obstacle-ahead detect-obstacles-enemy-target
+      if not obstacle-ahead and (empty? intentions or current-intention != "suivre-target")
+      [
+        ;if (not empty? intentions) and current-intention != "suivre-target" [pop-intention]
+        set my-path []
+        add-intention "suivre-target" "detect-obstacles-enemy-target"
+      ]
+      if obstacle-ahead and (empty? intentions or current-intention != "eviter-obstacle")
+      [
+        ;if (not empty? intentions) and current-intention != "eviter-obstacle" [pop-intention]
+        add-intention "eviter-obstacle" "not detect-obstacles-enemy-target"  
+      ]
     ]
-    if obstacle-ahead and (empty? intentions or current-intention != "eviter-obstacle")
-    [
-      if (not empty? intentions) and current-intention != "eviter-obstacle" [pop-intention]
-      add-intention "eviter-obstacle" "not detect-obstacles-enemy-target"  
-    ]
+    
   ]
 end

@@ -36,6 +36,7 @@ to-report distance-nowrap-noZAxis [ source target ]
   report [distance-nowrap source] of target - abs ([zcor] of source - [pzcor] of target)
 end
 
+;; Revoie un Agentset composé de l'ensemble des convois dans le champ de vision
 to-report detect-convois-in-vision
   let targets convois in-radius-nowrap vision-radius
   let retour []
@@ -49,6 +50,7 @@ to-report detect-convois-in-vision
   report retour
 end
 
+;; Revoie vrai si un agent se trouve sur la trajectoire de deplacement de l'agent
 to-report detect-agent-between-target [target]
   let temp 1
   let headingFlag heading - 40
@@ -56,13 +58,14 @@ to-report detect-agent-between-target [target]
   [
     while [ temp < distance target ]
     [
-      if any? other turtles-on patch-at-heading-and-distance headingFlag temp [report true]
+      if any? other enemies-on patch-at-heading-and-distance headingFlag temp or any? convois-on patch-at-heading-and-distance headingFlag temp
+      [ report true ]
       set temp temp + 1
     ]
     set headingFlag headingFlag + 10
   ]
   
-  ; Si on arrive là c'est qu'on n'avait pas de 
+  ; Si on arrive là c'est qu'il n'y avait personne devant
   report false
 end
 
@@ -77,7 +80,7 @@ to-report detect-obstacle-between-target [target]
   [
     while [ temp < distance target ]
     [
-      if [obstacle?] of patch-at-heading-and-distance headingFlag temp [report true]
+      if [obstacle?] of patch-at-heading-and-distance headingFlag temp [ report true ]
       set temp temp + 1
     ]
     set headingFlag headingFlag + 10

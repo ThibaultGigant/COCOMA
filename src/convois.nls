@@ -189,6 +189,7 @@ end
 ;; Beliefs ;;
 ;;---------;;
 
+
 ;; Initialise les connaissances du convoi
 to setup-convois-beliefs
   ;; Connaissances sur les Drones 
@@ -197,12 +198,45 @@ to setup-convois-beliefs
   intelligent-update-belief "drones-protecteurs" ([])
   
   ;; Connaissances sur le cortege auquel on appartient  
-  intelligent-update-belief "cortege-buddies" sort-on [who] convois
+  intelligent-update-belief "cortege-buddies" sort-on [who] other convois
   intelligent-update-belief "leader" min-one-of convois [who] ;; Le leader du cortege, donc different de leader?
 end
 
+
 ;; Met à jour le cortège, par suppression de la liste à partir de l'id passé en argument
-to update-belief-cortege [new-leader-id split-id]
-  ;; TODO
+to update-belief-cortege [split-id]
+  let cortege intelligent-get-belief "cortege-buddies"
+  ;; Si on est avant, dans le convoi, on supprime après l'id, sinon on supprime avant et on change le leader
+  ifelse [who] of myself < split-id
+  [
+    intelligent-update-belief "cortege-buddies" filter [? < split-id] intelligent-get-belief "cortege-buddies"
+  ]
+  [
+    intelligent-update-belief "cortege-buddies" filter [? >= split-id] intelligent-get-belief "cortege-buddies"
+    intelligent-update-belief "leader" convoi split-id
+  ]
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

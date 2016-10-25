@@ -74,11 +74,11 @@ to-report detect-obstacle-between-target [target]
   if abs (xcor - [pxcor] of patch-ahead speed) > speed + safe-distance or abs (ycor - [pycor] of patch-ahead speed) > speed + safe-distance
   [ report true ]
   
-  let temp 1
+  let temp speed
   let headingFlag heading - 40
   while [ headingFlag < heading + 40 ]
   [
-    while [ temp < distance target ]
+    while [ temp <= distance target ]
     [
       if [obstacle?] of patch-at-heading-and-distance headingFlag temp [ report true ]
       set temp temp + 1
@@ -157,31 +157,48 @@ to-report update-knowledges-drones [new-knowledges]
     ;; Pour chaque drone
     foreach Infos-Drones
     [
-      ;; Récupération de nos croyance concernant ce drone
-      show content
-      show new-knowledges
-      let current-info-drone K-get-drone K-get-turtle content
+      let turt K-get "turtle" ?
+      set tick-of-K K-get "tick" ?
       
-      let flag false
-      ifelse current-info-drone = [] 
-      [ set flag true ]
-      [ if tick-of-K > K-get-tick current-info-drone [set flag true ] ]
-      
-      
-      
-      ;; Vérification de la date des croyances
-      set tick-of-K K-get-tick ?
-      if flag
-      [
-        ;; Update
-        ifelse current-info-drone = []
+      ;; On ne traite que les drones autres que nous même
+      if turt != self [
+        
+        ;; Récupération de nos croyance concernant ce drone
+        let current-info-drone K-get-Info-Drone turt
+        
+        let K-Infos-Drones intelligent-get-belief "K-Infos-Drones"
+        
+        ifelse current-info-drone = [] 
         [
-          intelligent-update-belief "K-Infos-Drones" lput content intelligent-get-belief "K-Infos-Drones"
+          intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones
         ]
         [
+          if tick-of-K > K-get "tick" current-info-drone
+          [
+            let pos position current-info-drone K-Infos-Drones
+            intelligent-update-belief "K-Infos-Drones" lput ? remove-item pos K-Infos-Drones
+          ]
         ]
         
-        show (list "Update" ?)
+        
+        ;; Vérification de la date des croyances
+;        set tick-of-K K-get "tick" ?
+;        
+;        ifelse flag
+;        [
+;          ;; Update
+;          ifelse not empty? current-info-drone
+;          [
+;            ;let pos position current-info-drone K-Infos-Drones
+;            ;intelligent-update-belief "K-Infos-Drones" lput ? remove-item pos K-Infos-Drones
+;          ]
+;          [ intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones ]
+;        ]
+;        [
+;          intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones
+;        ]
+          
+          ;show (list "Update" ?)
       ]
     ]
     
@@ -192,11 +209,11 @@ to-report update-knowledges-drones [new-knowledges]
     foreach Infos-Convois
     [
       ;; Récupération de nos croyance concernant ce drone
-      let current-info-convoi K-get-convoi K-get-turtle content
+      let current-info-convoi K-get-Info-Convoi K-get "turtle" ?
       
       ;; Vérification de la date des croyances
-      set tick-of-K K-get-tick ?
-      if tick-of-K > K-get-tick current-info-convoi
+      set tick-of-K K-get "tick" ?
+      if tick-of-K > K-get "tick" current-info-convoi
       [
         ;; Update
       ]
@@ -209,6 +226,14 @@ end
 to-report K-get-Infos-Drones  [K] report item 0 K end
 to-report K-get-Infos-Convois [K] report item 1 K end
 
+
+;; Retourne le champs voulu dans Info-Drones et Info-Convois
+to-report K-get [field K]
+    let pos position field K
+    ;show (list "Timon HERE" pos field K)
+    report item (pos + 1) K
+end
+
 to-report K-get-tick     [K] report item 0 K end
 to-report K-get-turtle   [K] report item 1 K end
 to-report K-get-position [K] report item 2 K end
@@ -217,10 +242,13 @@ to-report K-get-health   [K] report item 4 K end
 to-report K-get-dead?    [K] report item 5 K end
 to-report K-get-fuel     [K] report item 6 K end
 
-to-report K-get-drone  [drone]
-  report (filter [member? drone ?]  intelligent-get-belief "K-Infos-Drones")
+to-report K-get-Info-Drone  [drone]
+  let li (filter [member? drone ?]  intelligent-get-belief "K-Infos-Drones")
+  ifelse empty? li
+  [ report li ]
+  [ report item 0 li ]
 end
 
-to-report K-get-convoi [convoi]
-  report (filter [member? convoi ?] intelligent-get-belief "K-Infos-Convois")
+to-report K-get-Info-Convoi [convoi]
+  report item 0 (filter [member? convoi ?] intelligent-get-belief "K-Infos-Convois")
 end

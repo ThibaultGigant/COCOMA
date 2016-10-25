@@ -207,7 +207,8 @@ to drones-think
     
     check-fuel-drones
     
-    show (list "Timon" intelligent-get-belief "K-Infos-Drones")
+    ;if ticks mod 15 = 0 [
+    ;show (list intelligent-get-belief "K-Infos-Drones") ]
     
     ;; Connaissances
     let a send-knowledges-drones

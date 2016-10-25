@@ -2,9 +2,9 @@
 ;; Convois' communication related code ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; Recrutement des drones protecteur ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;-----------------------------------;;
 
 to recrutement-drones
   let msg get-message
@@ -36,7 +36,6 @@ to recrutement-drones
       
     ]
   ]
-  
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;

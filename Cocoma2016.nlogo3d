@@ -1,6 +1,5 @@
 __includes ["src/functions-astar.nls"
             "src/convois.nls"
-            "src/functions-convois.nls"
             "src/enemies.nls"
             "src/bdi.nls"
             "src/communication.nls"
@@ -221,7 +220,6 @@ to setup-convois
       set dead? false
 
       set beliefs ([])
-      setup-convois-beliefs
       set intentions ([])
 
       ; Visu
@@ -261,6 +259,9 @@ to setup-convois
       ]
 
     ]
+
+    ; Mise en place des connaissances du convoi
+    ask convois [ setup-convois-beliefs ]
   ]
 end
 
@@ -476,7 +477,7 @@ SWITCH
 227
 astar-longpath
 astar-longpath
-0
+1
 1
 -1000
 

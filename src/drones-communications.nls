@@ -113,8 +113,9 @@ end
 
 ;; Regroupement des connaissances
 to-report send-knowledges-drones
-  let content fput (list ticks self patch-here statu dead? health fuel) intelligent-get-belief "K-Infos-Drones"
-  let msg create-complete-msg ([self] of other drones) "knowledge" fput content [[]]
+  let content fput (list "tick" ticks "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
+  let content-convoi intelligent-get-belief "K-Infos-Convois"
+  let msg create-complete-msg ([self] of other drones) "knowledge" fput content fput content-convoi []
   
   send msg
   

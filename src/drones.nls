@@ -107,15 +107,7 @@ to setup-drones
     ;;    • base-patch               : Position de la base
     ;;    • last-statu               : Statu avant le rapatriement
     set beliefs ([])
-    intelligent-update-belief "K-Infos-Drones" []
-    intelligent-update-belief "K-Infos-Convois" []
-    intelligent-update-belief "convoi-suivi" nobody
-    intelligent-update-belief "convoi-already-protected" []
-    intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-update-belief "counter enrollement" 0
-    
-    intelligent-update-belief "base-patch" nobody
-    intelligent-update-belief "last-statu" "enBase"
+    setup-drones-beliefs
     
     ;; Deplacement
     set speed speed-drones * simu-speed / 1000
@@ -139,6 +131,18 @@ to setup-drones
     add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     add-intention "take-off-drones" "take-off-drones-done"
   ]
+end
+
+to setup-drones-beliefs
+  intelligent-update-belief "K-Infos-Drones" []
+  intelligent-update-belief "K-Infos-Convois" []
+  intelligent-update-belief "convoi-suivi" nobody
+  intelligent-update-belief "convoi-already-protected" []
+  intelligent-update-belief "etat enrollement" "cherche convoi"
+  intelligent-update-belief "counter enrollement" 0
+  
+  intelligent-update-belief "base-patch" nobody
+  intelligent-update-belief "last-statu" "enBase"
 end
 
 to soft-reset-drones
@@ -211,13 +215,13 @@ to drones-think
     ;show (list intelligent-get-belief "K-Infos-Drones") ]
     
     ;; Connaissances
-    let a send-knowledges-drones
-    
-    let new-knowledge get-msg-if-performative "knowledge"
-    if new-knowledge != nobody
-    [
-      let b update-knowledges-drones new-knowledge
-    ]
+;    let a send-knowledges-drones
+;    
+;    let new-knowledge get-msg-if-performative "knowledge"
+;    if new-knowledge != nobody
+;    [
+;      let b update-knowledges-drones new-knowledge
+;    ]
   ]
 end
 
@@ -375,6 +379,7 @@ end
 to-report cherche-convoi-drones-done
   if intelligent-get-belief "etat enrollement" != "cherche convoi"
   [
+    show intelligent-get-belief "etat enrollement"
     add-intention "demande-au-convoi-drones" "demande-au-convoi-drones-done"
     report true
   ]
@@ -394,7 +399,7 @@ to-report demande-au-convoi-drones-done
     ifelse intelligent-get-belief "etat enrollement" = "demande envoyee"
     [ add-intention "demande-envoyee-drones" "demande-envoyee-drones-done" ]
     [
-      intelligent-update-belief "etat enrollement" "cherche-convoi"
+      intelligent-update-belief "etat enrollement" "cherche convoi"
       intelligent-update-belief "convoi-suivi" nobody
       add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     ]
@@ -413,13 +418,70 @@ end
 to-report demande-envoyee-drones-done
   if intelligent-get-belief "etat enrollement" != "demande envoyee"
   [
-    ifelse intelligent-get-belief "etat enrollement" = "suivi"
-    [ add-intention "protect-convoi" "protect-convoi-done" ]
+    if intelligent-get-belief "etat enrollement" = "suivi"
+    [
+      add-intention "protect-convoi" "protect-convoi-done" 
+      report true
+    ]
+    
+    if intelligent-get-belief "etat enrollement" = "demande leader"
     [ 
-      intelligent-update-belief "etat enrollement" "cherche-convoi"
+      add-intention "demande-au-leader-drones" "demande-au-leader-drones-done"
+      report true
+    ]
+    
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "convoi-suivi" intelligent-get-belief "convoi-already-protected"
+    intelligent-update-belief "convoi-suivi" nobody
+    add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+  
+    report true
+  ]
+  report false
+end
+
+to demande-au-leader-drones
+  suivi-convoi-drones
+  
+  enrollement-demande-au-leader
+end
+
+to-report demande-au-leader-drones-done
+  let etat intelligent-get-belief "etat enrollement"
+  if etat != "demande leader"
+  [
+    ifelse etat = "demande envoyee au leader drone"
+    [
+      add-intention "demande-envoyee-au-leader" "demande-envoyee-au-leader-done"
+    ]
+    [
+      intelligent-update-belief "etat enrollement" "cherche convoi"
+      intelligent-update-belief "convoi-suivi" nobody
+      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+    ]
+    report true
+  ]
+  report false
+end
+
+to demande-envoyee-au-leader
+  suivi-convoi-drones
+  
+  enrollement-demande-envoyee-au-leader
+end
+
+to-report demande-envoyee-au-leader-done
+  let etat intelligent-get-belief "etat enrollement"
+  if etat != "demande envoyee au leader drone"
+  [
+    ifelse etat = "suivi"
+    [ add-intention "protect-convoi" "protect-convoi-done" ]
+    [
+      intelligent-update-belief "etat enrollement" "cherche convoi"
       intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "convoi-suivi" intelligent-get-belief "convoi-already-protected"
       intelligent-update-belief "convoi-suivi" nobody
-      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done" ]
+      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+    ]
     
     report true
   ]

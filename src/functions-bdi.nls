@@ -18,3 +18,10 @@ end
 to-report intelligent-get-belief [b-type]
   report belief-content read-first-belief-of-type b-type
 end
+
+to intelligent-lput-belief [b-type new-item]
+  let li intelligent-get-belief b-type
+  ifelse empty? li
+  [ intelligent-update-belief b-type (list new-item) ]
+  [ intelligent-update-belief b-type lput new-item li]
+end

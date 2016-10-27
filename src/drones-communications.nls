@@ -69,7 +69,7 @@ to enrollement-demande-au-convoi
     ;; Envoi du message
     send create-complete-msg convoi-suivi "drone-protect" "enregistrement"
     
-    intelligent-update-belief "etat enrollement" "demande envoyée"
+    intelligent-update-belief "etat enrollement" "demande envoyee"
     intelligent-update-belief "counter enrollement" 0
     stop
   ]
@@ -82,24 +82,101 @@ to enrollement-demande-envoyee
   if check-message msg "drone-protect" "Accept"
     [
       intelligent-update-belief "etat enrollement" "suivi"
+      intelligent-update-belief "drone-protect leader" self
+      intelligent-update-belief "drone-protect team" (list self)
       intelligent-update-belief "counter enrollement" 0
       stop
     ]
   if check-message msg "drone-protect" "Refuse"
     [
-      intelligent-update-belief "etat enrollement" "cherche-convoi"
+      intelligent-update-belief "etat enrollement" "cherche convoi"
+      intelligent-lput-belief "convoi-already-protected" intelligent-get-belief "convoi-suivi"
+      intelligent-update-belief "convoi-suivi" nobody
       intelligent-update-belief "counter enrollement" 0
       show "Refusé"
       stop
     ]
     
+  if check-message msg "drone-protect" nobody
+  [
+    let leader get-content msg
+    intelligent-update-belief "etat enrollement" "demande leader"
+    intelligent-update-belief "drone-protect leader" leader
+    intelligent-update-belief "counter enrollement" 0
+    show (word "demande au leader " leader)
+    stop
+  ]
+  
+    
   add-One-to-counter
 end
 
-to enrollement-suivi
+to enrollement-demande-au-leader
+  let leader intelligent-get-belief "drone-protect leader"
+  
+  if can-communicate-with-convoi leader [
+    send create-complete-msg leader "drone-protect" "enregistrement"
+    
+    intelligent-update-belief "etat enrollement" "demande envoyee au leader drone"
+    intelligent-update-belief "counter enrollement" 0
+    stop
+  ]
+  
+  add-One-to-counter
+end
+
+to enrollement-demande-envoyee-au-leader
   let msg get-message
-  if check-message msg "drone-protect" "R-U-here?"
-    [ send create-complete-reply msg "drone-protect" "I'm-here" ]
+  if check-message msg "drone-protect" "Accept"
+  [
+    intelligent-update-belief "etat enrollement" "suivi"
+    intelligent-update-belief "counter enrollement" 0
+    stop
+  ]
+  if check-message msg "drone-protect" "Refuse"
+  [
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-lput-belief "convoi-already-protected" intelligent-get-belief "convoi-suivi"
+    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "counter enrollement" 0
+    show "Refusé"
+    stop
+  ]
+end
+
+;; Chaque drone protecteur répond présent à l'appel
+;; L'appel peut provenir du convoi leader (dans le cas du leader de la flotte)
+;; ou du leader de la flotte pour les autres drones
+;; -----------------
+to enrollement-suivi
+  let leader intelligent-get-belief "drone-protect leader"
+  
+  if leader = self [
+;    if check-message msg "drone-protect" "R-U-here?"
+;    [ send create-complete-reply msg "drone-protect" "I'm-here" ]
+    enrollement-equipe
+  ]
+end
+
+;; Le drone leader d'une équipe de protecteur se charge des postulations des
+;; autres drones qui composeront la flotte
+;; ------------------
+to enrollement-equipe
+  let msg get-msg-if-performative "drone-protect"
+  if check-message msg "drone-protect" "enregistrement"
+  [
+    let sender get-sender msg
+    let team intelligent-get-belief "drone-protect team"
+    
+    ifelse not member? [self] of turtle read-from-string sender team and length team < 4
+    [
+      send create-complete-msg sender "drone-protect" "Accept"
+      intelligent-update-belief "drone-protect team" lput sender team
+    ]
+    [
+      send create-complete-msg sender "drone-protect" "Refuse"
+    ]
+  ]
 end
 
 to add-One-to-counter

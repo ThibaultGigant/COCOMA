@@ -95,7 +95,9 @@ end
 ;;;;;;;;;;;;;;;;;;;;
 
 ;; Indique si le message est bien celui qu'on attend...
-to-report check-message [msg performative content] 
+to-report check-message [msg performative content]
+  if content = nobody
+  [ report msg != nobody and msg != "no_message" and get-performative msg = performative ]
   report msg != nobody and msg != "no_message" and get-performative msg = performative and get-content msg = content
 end
 

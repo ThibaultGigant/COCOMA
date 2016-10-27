@@ -12,19 +12,19 @@ to recrutement-drones
   
   if check-message msg "drone-protect" "enregistrement" [
     let sender get-sender msg
-    let nb-protecteurs intelligent-get-belief "nb-protecteurs"
-    let max-protecteurs intelligent-get-belief "max-protecteurs"
+    set sender [self] of drone read-from-string sender
+    
+    let protecteur intelligent-get-belief "drone-protecteur"
     
     ;; Envoi du message
     let reply create-reply "drone-protect" msg
     
-    ifelse nb-protecteurs < max-protecteurs or member? sender intelligent-get-belief "drones-protecteurs"
-      [
-        set reply add-content "Accept" reply
-        intelligent-update-belief "drones-protecteurs" (lput (list (get-sender msg) 0) intelligent-get-belief "drones-protecteurs")
-        intelligent-update-belief "nb-protecteurs" nb-protecteurs + 1
-      ]
-      [ set reply add-content "Refuse" reply ]
+    ifelse protecteur = nobody
+    [
+      set reply add-content "Accept" reply
+      intelligent-update-belief "drone-protecteur" (list sender 0)
+    ]
+    [ set reply add-content item 0 protecteur reply ]
     
     send reply
   ]

@@ -74,9 +74,9 @@ to convois-think
       ]
     ]
     
+    ;; Traitement des messages par le convoi
     ask convois with [not finished? and not dead?] [
-      recrutement-drones
-      ;show intelligent-get-belief "drones-protecteurs"
+      msg-processing
     ]
     
   ]
@@ -167,22 +167,37 @@ end
 
 ;; Coupe le lien entre le convoi id et le convoi (id-1), et définit le leader du second cortege à convoi id
 to split-convoi [ id ] ; id = cars / 2
-  
+  ;; Récupération du nouveau leader
   let new-leader convoi id
   
-  ask new-leader [
-    set leader? true
-    set color blue
-    set astar-longpath not astar-longpath
-    ask my-out-links [die]
+;  ;; Mise en place des caractéristiques du nouveau leader
+;  ask new-leader [
+;    set leader? true
+;    set color blue
+;    set astar-longpath not astar-longpath
+;    ask my-out-links [die]
+;  ]
+
+  
+  
+  ask convois
+  [
+    update-belief-cortege id
   ]
   
   ; affichage de astar
   astar-affichage ([[patch-at 0 0 (pzcor * -1)] of patch-here] of new-leader) (one-of patches with [objectif?])
 end
 
+;; Divise les corteges en deux
 to split
-  split-convoi nb-cars / 2
+  foreach sort-on [who] convois with [leader?]
+  [
+    let cortege-buddies [intelligent-get-belief "cortege-buddies"] of ?
+    ask ? [
+      request-split-convoi-to-leader [who] of ? [who] of item floor (length cortege-buddies / 2) cortege-buddies
+    ]
+  ]
 end
 
 
@@ -199,25 +214,42 @@ to setup-convois-beliefs
   
   ;; Connaissances sur le cortege auquel on appartient  
   intelligent-update-belief "cortege-buddies" sort-on [who] other convois
-  intelligent-update-belief "leader" min-one-of convois [who] ;; Le leader du cortege, donc different de leader?
+  intelligent-update-belief "leader" min-one-of convois [who] ;; Le leader du cortege auquel le convoi appartient, donc different de leader?
+  
+  show intelligent-get-belief "leader"
+  show intelligent-get-belief "cortege-buddies"
 end
 
 
-;; Met à jour le cortège, par suppression de la liste à partir de l'id passé en argument
+;; Met à jour les connaissances sur le cortège, par suppression de la liste à partir de l'id passé en argument
 to update-belief-cortege [split-id]
   let cortege intelligent-get-belief "cortege-buddies"
   ;; Si on est avant, dans le convoi, on supprime après l'id, sinon on supprime avant et on change le leader
-  ifelse [who] of myself < split-id
+  ifelse who < split-id
   [
-    intelligent-update-belief "cortege-buddies" filter [? < split-id] intelligent-get-belief "cortege-buddies"
+    intelligent-update-belief "cortege-buddies" filter [[who] of ? < split-id] intelligent-get-belief "cortege-buddies"
   ]
   [
-    intelligent-update-belief "cortege-buddies" filter [? >= split-id] intelligent-get-belief "cortege-buddies"
+    intelligent-update-belief "cortege-buddies" filter [[who] of ? >= split-id] intelligent-get-belief "cortege-buddies"
     intelligent-update-belief "leader" convoi split-id
   ]
+  
+  show intelligent-get-belief "leader"
+  show intelligent-get-belief "cortege-buddies"
 end
 
 
+;; Reception et traitement des messages ;;
+;;--------------------------------------;;
+
+;; Traitement des messages reçus à chaque tick
+to msg-processing
+  ifelse leader?
+  [ receive-split-request-leader ]
+  [ receive-split-cortege-convoi ]
+  
+  recrutement-drones
+end
 
 
 

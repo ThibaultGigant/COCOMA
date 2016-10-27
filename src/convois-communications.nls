@@ -6,37 +6,74 @@
 ;; Recrutement des drones protecteur ;;
 ;;-----------------------------------;;
 
+;; Gestion des messages liés aux drones protecteurs
 to recrutement-drones
-  let msg get-message
+  let msg get-msg-if-performative "drone-protect"
   
-  if msg != "no_message" [
+  if check-message msg "drone-protect" "enregistrement" [
     let sender get-sender msg
     let nb-protecteurs intelligent-get-belief "nb-protecteurs"
     let max-protecteurs intelligent-get-belief "max-protecteurs"
     
+    ;; Envoi du message
+    let reply create-reply "drone-protect" msg
     
-    ;; Gestion des messages liés aux drones protecteurs
-    if get-performative msg = "drone-protect" [
-      
-      ;; Phase d'enregistrement
-      if get-content msg = "enregistrement" [ 
-        ;; Envoi du message
-        let reply create-reply "drone-protect" msg
-        
-        ifelse nb-protecteurs < max-protecteurs or member? sender intelligent-get-belief "drones-protecteurs"
-        [
-          set reply add-content "Accept" reply
-          intelligent-update-belief "drones-protecteurs" (lput (list (get-sender msg) 0) intelligent-get-belief "drones-protecteurs")
-          intelligent-update-belief "nb-protecteurs" nb-protecteurs + 1
-        ]
-        [ set reply add-content "Refuse" reply ]
-        
-        send reply
+    ifelse nb-protecteurs < max-protecteurs or member? sender intelligent-get-belief "drones-protecteurs"
+      [
+        set reply add-content "Accept" reply
+        intelligent-update-belief "drones-protecteurs" (lput (list (get-sender msg) 0) intelligent-get-belief "drones-protecteurs")
+        intelligent-update-belief "nb-protecteurs" nb-protecteurs + 1
       ]
-      
+      [ set reply add-content "Refuse" reply ]
+    
+    send reply
+  ]
+end
+
+
+;; Fonctions liées aux divisions de convoi ;;
+;;-----------------------------------------;;
+
+;; Fonction qui envoie un message à un leader pour diviser son cortege à un certain niveau
+to request-split-convoi-to-leader [leader-id split-id]
+  send create-complete-msg convoi leader-id "split-cortege-request" split-id
+end
+
+;; Fonction que le leader appelle pour vérifier s'il doit diviser son cortege
+to receive-split-request-leader
+  let msg get-msg-if-performative "split-cortege-request"
+  if msg != nobody
+  [
+    let split-id get-content msg
+    ;; Envoi d'un message à tous les convois du cortege
+    foreach intelligent-get-belief "cortege-buddies"
+    [
+      send create-complete-msg ? "split-cortege" split-id
+    ]
+    ;; Mise à jour de la propre connaissance sur le cortege
+    update-belief-cortege split-id
+  ]
+end
+
+;; Réception message envoyé par leader pour split et actions si réception
+to receive-split-cortege-convoi
+  let msg get-msg-if-performative "split-cortege"
+  if msg != nobody
+  [
+    let split-id get-content msg
+    ;; Mise à jour de la propre connaissance sur le cortege
+    update-belief-cortege split-id
+    ;; Mise à jour caractéristiques si on est nouveau leader
+    if who = split-id
+    [
+      set leader? true
+      set color orange
+      ;; set astar-longpath not astar-longpath
+      ask my-out-links [die]
     ]
   ]
 end
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Fonctions diverses ;;

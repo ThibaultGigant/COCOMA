@@ -477,7 +477,7 @@ SWITCH
 227
 astar-longpath
 astar-longpath
-1
+0
 1
 -1000
 
@@ -839,7 +839,7 @@ SWITCH
 89
 show-intentions
 show-intentions
-0
+1
 1
 -1000
 

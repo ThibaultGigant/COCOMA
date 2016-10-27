@@ -94,10 +94,12 @@ end
 ;; Communications ;;
 ;;;;;;;;;;;;;;;;;;;;
 
+;; Indique si le message est bien celui qu'on attend...
 to-report check-message [msg performative content] 
-  report msg != "no_message" and get-performative msg = performative and get-content msg = content
+  report msg != nobody and msg != "no_message" and get-performative msg = performative and get-content msg = content
 end
 
+;; Crée un message complet à partir des informations fournies
 to-report create-complete-msg [receiver performative content]
   let msg create-message performative
   
@@ -109,12 +111,14 @@ to-report create-complete-msg [receiver performative content]
   report msg
 end
 
+;; Crée une réponse complète à un message donné grâce aux informations fournies
 to-report create-complete-reply [msg performative content]
   let reply create-reply performative msg
   set reply add-content content reply 
   report reply
 end
 
+;; Récupère le message seulement si la performative est ce qu'on attend
 to-report get-msg-if-performative [performative]
   let msg get-message-no-remove
   if get-performative msg = performative [ report get-message ]

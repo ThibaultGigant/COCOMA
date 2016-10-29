@@ -9,6 +9,8 @@ __includes ["src/functions-astar.nls"
             "src/functions-bdi.nls"
             "src/commons.nls"]
 
+extensions [sound]
+
 breed [waypoints waypoint]
 breed [envconstructors envconstructor]
 breed [convois convoi]
@@ -38,6 +40,7 @@ convois-own[incoming-queue
   dead?
   speed maxdir ; maximal speed of a car, and max angle
   last-send-time ; communication historical time-stamp
+  hp ; Nombre de points de vie restant
   beliefs
   intentions
 ]
@@ -218,6 +221,8 @@ to setup-convois
       set to-protect? false
       set genlongpath? astar-longpath
       set dead? false
+
+      set hp convois-health-points
 
       set beliefs ([])
       set intentions ([])
@@ -616,7 +621,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+6
 1
 0
 Number
@@ -692,10 +697,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-281
-485
-495
-518
+280
+486
+494
+519
 safe-distance
 safe-distance
 0
@@ -712,7 +717,7 @@ INPUTBOX
 418
 115
 nb-drones
-6
+0
 1
 0
 Number
@@ -796,7 +801,7 @@ drones-suivi-radius
 drones-suivi-radius
 0
 100
-7
+1
 1
 1
 NIL
@@ -820,7 +825,7 @@ HORIZONTAL
 SLIDER
 498
 486
-686
+685
 519
 enemies-communication-radius
 enemies-communication-radius
@@ -882,7 +887,7 @@ speed-drones
 speed-drones
 0
 300
-101
+25
 1
 1
 NIL
@@ -981,6 +986,116 @@ Variables communes
 12
 0.0
 1
+
+TEXTBOX
+731
+164
+881
+182
+Munitions
+11
+0.0
+1
+
+SLIDER
+721
+187
+893
+220
+ammos-degats
+ammos-degats
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+897
+187
+1124
+220
+ammos-speed
+ammos-speed
+1
+50
+4
+1
+1
+xsimu-speed
+HORIZONTAL
+
+SLIDER
+721
+223
+893
+256
+ammos-accuracy
+ammos-accuracy
+0
+100
+80
+1
+1
+%
+HORIZONTAL
+
+TEXTBOX
+723
+305
+873
+323
+Convois
+11
+0.0
+1
+
+SLIDER
+725
+328
+918
+361
+convois-health-points
+convois-health-points
+0
+100
+100
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+280
+525
+493
+558
+enemies-health-points
+enemies-health-points
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+498
+523
+685
+556
+enemies-reload-time
+enemies-reload-time
+0
+10
+10
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?

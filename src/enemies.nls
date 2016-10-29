@@ -24,6 +24,13 @@ enemies-own [
   my-path
   dead?
   
+  ;; • hp                   : Points de vie de l'ennemi
+  ;; • elapsed-time         : temps écoulé depuis dernier tir
+  ;; • reload-time          : Temps de chargement de l'arme entre deux tirs
+  hp
+  elapsed-time
+  reload-time
+  
   ;; Variables pour BDI
   ;; ---
   ;; • beliefs              : Ensemble des croyances de l'ennemi
@@ -53,6 +60,10 @@ to setup-enemies
     set max-dir 10 * simu-speed
     set my-path []
     set dead? false
+    
+    set hp enemies-health-points
+    set elapsed-time enemies-reload-time
+    set reload-time enemies-reload-time
     
     set beliefs []
     set intentions []
@@ -131,8 +142,15 @@ to move-to-target
     ]
 end
 
-to shoot-convois-in-range
-  
+to shoot-target
+  set elapsed-time elapsed-time + 1
+  if elapsed-time > reload-time [
+    if distance intelligent-get-belief "target" < shoot-radius
+    [
+      sound:play-note "GUNSHOT" 60 64 reload-time
+      set elapsed-time 0
+    ]
+  ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -220,7 +238,7 @@ to enemies-think
     execute-intentions
     update-intentions
     if show-intentions and empty? intentions [ show intentions ]
-    ;    shoot-convois-in-range
+    ;    shoot-target
   ]
 end
 
@@ -250,12 +268,14 @@ end
 to suivre-target
   detect-convois
   move-to-target
+  shoot-target
 end
 
 ; On a repéré une target et il y a un obstacle, on suit astar
 to eviter-obstacle
   detect-convois
   move-to-target-astar
+  shoot-target
 end
 
 ;; Fonctions sur les intentions

@@ -1,0 +1,48 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Drones | Partage des connaissances ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to send-knowledges-drones
+  let receivers get-receivers-drones
+  if empty? receivers [ stop ]
+  
+  let content create-knowledges-drones
+  let msg create-complete-msg receivers "knowledge" content
+  send msg
+  
+end
+
+;; Regroupement des connaissances
+to-report create-knowledges-drones
+  let content fput (list "tick" ticks "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
+  let content-convoi intelligent-get-belief "K-Infos-Convois"
+  
+  
+  report (list "K-Infos-Drones" content "K-Infos-Convois" content-convoi)
+end
+
+to-report get-receivers-drones
+  let role intelligent-get-belief "role"
+  
+  if role = "drone-protect"
+  [
+    if leader?
+    [
+      let other-leaders other drones with [ leader? and can-communicate-with-convoi self ]
+      let team intelligent-get-belief "drone-protect team"
+      if not empty? team
+      [ set team remove-item 0 team ]
+      
+      report sort sentence other-leaders team
+    ]
+    
+    if intelligent-get-belief "drone-protect leader" != nobody
+    [
+      let leader intelligent-get-belief "drone-protect leader"
+      if leader = nobody [ report [] ]
+      report (list leader)
+    ]
+    
+    report sort other drones with [ can-communicate-with-convoi self ]
+  ]
+end

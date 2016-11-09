@@ -1,0 +1,216 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Drones | Fonctions générales ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to ancre-I-Utilitaires
+end
+
+;; Fonctions utilitaires
+;; ---
+;; • at-base-drones            : Renvoie si le drone est à la base
+;; • distance-min-drones       : Vérifie si le drone est trop proche d'un autre
+
+to-report at-base-drones
+  ;report abs ([pxcor] of intelligent-get-belief "base-patch" - xcor ) + abs ([pycor] of intelligent-get-belief "base-patch" - ycor ) = 0
+  report distance-nowrap-noZAxis self intelligent-get-belief "base-patch" <= 0.3
+  ;report [distance-nowrap myself] of intelligent-get-belief "base-patch" <= 0.3 + (zcor - solAlt)
+  ;report min [distance-nowrap myself] of patches with [ base? ] <= 1
+end
+
+to-report distance-min-drones
+  if count drones < 2 [ report false ]
+  ; Calcul de l'angle avec la cible
+  let other-drone first sort-on [distance-nowrap myself] other drones
+  if [distance myself] of other-drone > min-distance-drones [ report false ]
+  
+  ; Si le drone se trouve au même endroit que l'autre drone (modulo l'altitude)
+  if [xcor] of other-drone = xcor and [ycor] of other-drone = ycor [
+       report false
+  ]
+  
+  ; Si on arrive là, le drone est près d'un autre, on le fait tourner pour éviter l'autre drone, et on avance
+  let headingFlag (towards-nowrap other-drone)
+  let dirCorrection subtract-headings headingFlag heading
+  
+  
+  if dirCorrection < 120 and dirCorrection > 0[
+    lt 10
+    fuel-consomme "rotation" 10
+    
+    fd-drones speed
+  ]
+  if dirCorrection > -120 and dirCorrection < 0[
+    rt 10
+    fuel-consomme "rotation" 10
+    
+    fd-drones speed
+  ]
+  report true
+end
+
+to ancre-II-Carburant
+end
+
+;; Fonctions liées au carburant
+;; ---
+;; • check-fuel-drones          : Vérifie s'il y a encore assez de fuel pour revenir à la base
+;; • fuel-consomme              : Met-à-jour le niveau de carburant du drones en fonction de ses actions
+
+;; Vérification du carburant
+to check-fuel-drones
+  let inten intention-name get-intention
+  
+  if inten = "ravitaillement-drones"
+  or inten = "landing-drones"
+  or inten = "reload-drones" 
+  [ stop ]
+  
+  ;; Le patch de la base la plus proche
+  let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
+  
+  ;; Estimation du carburant nécesasire pour rentrer à la base
+  ;; • pourcentage-securite-fuel-drones       : Donne une marge de sécurité
+  ;; ---
+  ;; Calcul
+  ;; • Le drone se déplace jusqu'à la base (fuel-consomme "fd")   : distance-nowrap myself
+  ;; • Le drone se tourne vers la base (fuel-consomme "rotate")   : abs subtract-headings toward-nowrap tmp heading /30
+  ;; • Le drone flotte dans les airs (fuel-consomme "floating")   : 0.25 / speed (le flottement coût un quart moins cher)
+  ;; • Le drone aterri (fuel-consomne "landing")                  : (zcor - solAlt) / 2
+  ;; • Le drone se laisse une marge                               : pourcentage-securite-fuel-drones
+  ;; • La puissance moteur du drone est prise en compte           : puissance-moteur-drones
+  let rotation 0
+;  if abs (xcor - [pxcor] of tmp) + abs (ycor - [pycor] of tmp) != 0
+;  [ 
+;    set rotation (abs (subtract-headings towards-nowrap tmp heading)) / 30
+;  ]
+  let fuel-estimate ( [distance-nowrap myself] of tmp * ( 1 + 0.25 / speed) + (zcor - solAlt) / 5 + rotation + (zcor - solAlt) / 2 )
+                    * (1.1 + pourcentage-securite-fuel-drones) * puissance-moteur-drones
+
+  ;; Vérification du carburant restant
+  if fuel < fuel-estimate [
+    ;; Le drone garde en mémoire la place de la base la plus proche
+    intelligent-update-belief "base-patch" tmp
+    
+    ;; Fin du comportement principal, le drone doit se ravitailler
+    let this-intention get-intention
+    add-intention "take-off-drones" "take-off-drones-done"
+    add-intention "reload-drones" "reload-drones-done"
+    add-intention "landing-drones" "landing-drones-done"
+    add-intention "ravitaillement-drones" "ravitaillement-drones-done"
+    ]
+end
+
+;; Comsomation de carburant
+;; ---
+;; La consommation dépend de la puissance des moteurs du drone,
+;; ainsi que du type de l'action / du mouvement
+;; ---
+;; • mouv                 : Type de l'action effectué
+;;   ---- Types
+;;        • "fd"          : Le drone a avancé devant lui (coût étalon, par mètre)
+;;        • "rotation"    : Le drone a effectué une rotation (coûte trois fois moins cher, pour 10 degrés)
+;;        • "take-off"    : Le drone décolle (ou prend de l'altitude) (coûte 1.5 fois plus cher, par mètre)
+;;        • "landing"     : Le drone aterri (ou perd de l'altitude) (coûte 5 fois moins cher, par mètre)
+;;        • "floating"    : Le drone reste sur place (on ne cumule avec un autre type) (coûte 4 fois moins cher, par tick)
+;;   ----
+;; • nb                   : Valeur associé à l'action (de combien de mètres le drone a avancé, etc)
+to fuel-consomme [ mouv nb ]  
+  if mouv = "fd"
+  [ set fuel fuel - nb  * puissance-moteur-drones ]
+  
+  if mouv = "rotation"
+  [ set fuel fuel - (nb / 30) * puissance-moteur-drones ]
+  
+  if mouv = "take-off"
+  [ set fuel fuel - (nb * 1.5)  * puissance-moteur-drones ]
+  
+  if mouv = "landing"
+  [ set fuel fuel - (nb / 5)  * puissance-moteur-drones ]
+  
+  if mouv = "floating"
+  [ set fuel fuel - (1 / 4)  * puissance-moteur-drones ]
+  
+end
+
+to ancre-III-Mouvements
+end
+
+;; Mouvements
+;; ---
+;; • fd-drones    : Fait avancer les drones, prend en compte le nowrap et les limites de map.
+;;                  Prise en compte du carburant consommé
+;; • rotate-drone : Tourne la tête du drone vers l'endroit indiqué, avec une vitesse limité.
+;;                  Prise en compte du carburant consommé
+
+
+;; Fait avancer les drones, prend en compte le nowrap et les limites de map.
+;; Prise en compte du carburant consommé
+;; ---
+;; • sp  : La distance à laquelle on veut faire avancer le drone
+to fd-drones [ sp ]
+  ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
+    fd sp
+    
+    fuel-consomme "fd" sp
+  ]
+  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
+      fd sp / 5
+      
+      fuel-consomme "fd" (sp / 5)
+    ]
+    [
+      ifelse heading >= 180 [ rt 10 ]
+      [ lt 10 ]
+      
+      ;; Carburant consommé (un rotation vaut trois fois moins qu'un déplacement)
+      
+      fuel-consomme "rotation" 10
+    ]
+  ]
+end
+
+;; Tourne la tête du drone vers l'endroit indiqué, avec une vitesse limité.
+;; Prise en compte du carburant consommé
+;; ---
+;; • goal  : L'endroit vers lequelle on souhaite que le drone se tourne
+to rotate-drone [ goal ]
+  ; Si le drone se trouve à l'endroit souhaité (modulo l'altitude)
+  if (is-turtle? goal and [xcor] of goal = xcor and [ycor]  of goal = ycor) or 
+     (is-patch? goal and [pxcor] of goal = xcor and [pycor] of goal = ycor) [
+       stop
+  ]
+  
+  ; Calcul de l'angle avec la cible
+  let headingFlag (towards-nowrap goal)
+  let dirCorrection subtract-headings headingFlag heading
+  
+  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
+  set dirCorrection precision dirCorrection 2
+  
+  ; Limite de l'angle, pour que ce soit plus realiste
+  ifelse dirCorrection > max-dir [ ; limite a droite
+    set dirCorrection max-dir
+  ]
+  [
+    if dirCorrection < max-dir * -1 [ ; limite a gauche
+      set dirCorrection max-dir * -1
+    ]
+  ]
+  
+  ; On tourne
+  rt dirCorrection
+;  fuel-consomme "rotation" dirCorrection
+end
+
+; Mouvement randomisé, principalement pour le début de la simulation
+to random-move-nowrap-drones
+  ;; Changement de cap selon probabilité
+  ;; Choix vers la gauche ou la droite
+  if random 100 < 5 
+  [
+    let turn random max-dir * one-of [ 1 -1 ]
+    lt turn
+;    fuel-consomme "rotation" turn
+  ]
+  fd-drones speed
+end

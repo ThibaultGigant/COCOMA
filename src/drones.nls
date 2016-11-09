@@ -12,21 +12,25 @@ drones-own [
   ;;    • attaquant               : Le drone attaque les ennemis
   ;;    • ravitailleur            : Le drone ravitaille les autres drones
   ;;    • surveillant             : Le drone surveille le terrain
+  ;;
   ;; • initial-health             : Nombre de points de vie initiaux du drone
   ;; • health                     : Nombre de points de vie restants au drone
+  ;; • leader?                    : Grade du drone
+  ;; • dead?                      : Vitalité du drone
+  ;; • vision-radius              : Taille du champs de vision
   ;;
   ;; • intentions                 : Liste des intentions du drone, pour la BDI
   ;; • incoming-queue             : Liste des messages reçus
   statu
   initial-health
   health
+  leader?
+  dead?
+  vision-radius
+  
   intentions
   incoming-queue
   
-  ;; • dead?                      : Vitalité du drone
-  ;; • vision-radius              : Taille du champs de vision
-  dead?
-  vision-radius
 
   ;; Beliefs
   ;; ---
@@ -38,6 +42,8 @@ drones-own [
   ;;   ---
   ;;   • convoi-suivi             : Convoi que le drone suit et protège
   ;;   • convoi-already-protected : Liste des convois qui ont une protection suffisante
+  ;;   • drone-protect leader : Leader du groupe de protection
+  ;;   • drone-protect team   : Equipe de protection
   ;;   Rapatriement
   ;;   ---
   ;;   • base-patch               : Position de la base
@@ -84,11 +90,12 @@ to setup-drones
     set statu "protect-convoi"
     set initial-health max-health-drones
     set health initial-health
-    set intentions ([])
-    set incoming-queue []
-    
+    set leader? false
     set dead? false
     set vision-radius drones-vision-radius
+    
+    set intentions ([])
+    set incoming-queue []
     
     ;; Beliefs
     ;; ---
@@ -134,12 +141,15 @@ to setup-drones
 end
 
 to setup-drones-beliefs
+  intelligent-update-belief "role" "drone-protect"
   intelligent-update-belief "K-Infos-Drones" []
   intelligent-update-belief "K-Infos-Convois" []
   intelligent-update-belief "convoi-suivi" nobody
   intelligent-update-belief "convoi-already-protected" []
   intelligent-update-belief "etat enrollement" "cherche convoi"
   intelligent-update-belief "counter enrollement" 0
+  intelligent-update-belief "drone-protect leader" nobody
+  intelligent-update-belief "drone-protect team" []
   
   intelligent-update-belief "base-patch" nobody
   intelligent-update-belief "last-statu" "enBase"
@@ -163,17 +173,21 @@ to soft-reset-drones
     ;; ---
     ;;   Suivi
     ;;   ---
-    ;;    • convoi-suivi     : Convoi que le drone suit et protège
-    ;;    • etat enrollement : Etape dans la procédure de recrutement
-    ;;    • counter enroll.  : Compteur servant au TimeOut pour la procédure de recrutement
+    ;;    • convoi-suivi         : Convoi que le drone suit et protège
+    ;;    • etat enrollement     : Etape dans la procédure de recrutement
+    ;;    • counter enroll.      : Compteur servant au TimeOut pour la procédure de recrutement
+    ;;    • drone-protect leader : Leader du groupe de protection
+    ;;    • drone-protect team   : Equipe de protection
     ;;   Rapatriement
     ;;   ---
-    ;;    • base-patch       : Position de la base
-    ;;    • last-statu       : Statu avant le rapatriement
+    ;;    • base-patch           : Position de la base
+    ;;    • last-statu           : Statu avant le rapatriement
     set beliefs ([])
     intelligent-update-belief "convoi-suivi" nobody
     intelligent-update-belief "etat enrollement" "cherche convoi"
     intelligent-update-belief "counter enrollement" 0
+    intelligent-update-belief "drone-protect leader" nobody
+    intelligent-update-belief "drone-protect team" []
     
     intelligent-update-belief "base-patch" nobody
     intelligent-update-belief "last-statu" "enBase"
@@ -204,526 +218,37 @@ end
 
 to drones-think  
   ask drones with [ not dead? and fuel >= 0 ] [
-    ;if ticks mod 10 = 0 [ show intentions ]
-    ;show intentions
-    ;show intelligent-get-belief "convoi-suivi"
+    ;; Connaissances
+    send-knowledges-drones
+    
+    let new-knowledge get-msg-if-performative "knowledge"
+    while [new-knowledge != nobody]
+    [
+      if new-knowledge != nobody
+      [
+        update-knowledges-drones new-knowledge
+      ]
+      set new-knowledge get-msg-if-performative "knowledge"
+    ]
+    
     execute-intentions
     
     check-fuel-drones
     
-    ;if ticks mod 15 = 0 [
-    ;show (list intelligent-get-belief "K-Infos-Drones") ]
+    ;; Coût du flottement
+;    if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
     
-    ;; Connaissances
-;    let a send-knowledges-drones
-;    
-;    let new-knowledge get-msg-if-performative "knowledge"
-;    if new-knowledge != nobody
+;    if ticks mod 15 < 15
 ;    [
-;      let b update-knowledges-drones new-knowledge
+;      show-debug intelligent-get-belief "K-Infos-Drones"
+;      show-debug intelligent-get-belief "K-Infos-Convois"
 ;    ]
   ]
-end
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;       Intentions       ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; I. Intentions générales
-;; ---
-;; I. a) take-off
-
-;; Décollage du drone
-to take-off-drones
   
-  if zcor < max-alt [
-    ;; Le drone descend
-    let last-pitch pitch
-    let last-roll roll
-    set pitch 90
-    fd-drones min (list speed (max-alt - zcor))
-    set pitch last-pitch
-    set roll last-roll
+  ask drones with [ (dead? or fuel <= 0) and zcor > solAlt ] [
+    set color black
+    ifelse solAlt > 0.2
+    [ set zcor zcor - 0.2 ]
+    [ set zcor 0 ]
   ]
-  
-;  let target intelligent-get-belief "convoi-suivi"
-;  
-;  if target != nobody [ rotate-agent target ]
-;  
-;  let delta 6
-;  
-;  ;; Décollage
-;  ifelse zcor < max-alt - 0.6
-;  [
-;    ;; Le drone lève le nez
-;    if pitch < 37 [ set pitch pitch + delta ]
-;  ]
-;  
-;  ;; Fin du décollage imminente
-;  [
-;    ;; Le drone se remet à l'horizontale
-;    ifelse pitch > 2 * delta
-;    [ set pitch pitch - delta ]
-;    [ set pitch delta ]
-;  ]
-;  
-;  fd-drones speed
-end
-
-to-report take-off-drones-done
-  if zcor >= max-alt
-  [
-;    set roll 0
-;    set pitch 0
-    report true
-  ]
-  report false
-end
-
-;; I. b) ravitaillement
-;; Le drone retourne à la base pour se ravitailler
-;; ---
-;; Doit-on garder en mémoire la direction de la base,
-;; ou doit-on considérer que les drones connaissent
-;; l'emplacement exacte de la base en tout temps ?
-to ravitaillement-drones
-  if not at-base-drones [
-    let base-patch intelligent-get-belief "base-patch"
-    rotate-agent base-patch
-    
-    fd-drones min (list speed ( distance-nowrap-noZAxis self base-patch))
-    
-    ;; Coût du flottement
-    if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
-  ]
-end
-
-to-report ravitaillement-drones-done
-  report at-base-drones
-end
-
-;; I. c) landing
-
-;; Aterrissage du drone
-to landing-drones
-;  let delta 6
-;  
-;  ;; Aterrissage
-;  ifelse zcor < solAlt + 0.6
-;  [
-;    ;; Le drone pique du nez
-;    if pitch > -37 [ set pitch pitch - delta ]
-;  ]
-;  
-;  ;; Fin de l'aterrissage imminente
-;  [
-;    ;; Le drone se remet à l'horizontale
-;    if pitch < (- delta) [ set pitch pitch + delta ]
-;  ]
-;  
-;  fd-drones speed
-  
-  if zcor > solAlt [
-    ;; Le drone descend
-    let last-pitch pitch
-    let last-roll roll
-    set pitch -90
-    fd-drones min (list speed (zcor - solAlt))
-    set pitch last-pitch
-    set roll last-roll
-  ]
-
-end
-
-;; Fin de l'aterrissage
-to-report landing-drones-done
-  if zcor <= solAlt
-  [
-    move-to patch xcor ycor solAlt 
-    report true
-  ]
-  report false
-end
-
-;; I. d) reaload
-
-;; Le drone remplit son réservoir
-to reload-drones
-  if fuel < max-fuel
-  [ set fuel min (list max-fuel (fuel + loading-speed-fuel)) ]
-end
-
-to-report reload-drones-done
-  report fuel = max-fuel
-end
-
-;; II. Protecteurs
-;; Suivi et protection de convoi
-;; ---
-;; II. a) cherche-convoi-drones
-;; Le drone cherche un convoi à proteger
-;; II. b) demande-au-convoi-drones
-;; Le drone demande au convoi s'il veut de sa protection
-;; II. c) demande-envoyee-drones
-;; Le drone attend la réponse du convoi
-;; II. d) protect-convoi
-;; Le drone protège le convoi
-
-;; II. a) cherche-convoi-drones
-to cherche-convoi-drones
-  suivi-convoi-drones
-  
-  enrollement-cherche-convoi
-end
-
-to-report cherche-convoi-drones-done
-  if intelligent-get-belief "etat enrollement" != "cherche convoi"
-  [
-    show intelligent-get-belief "etat enrollement"
-    add-intention "demande-au-convoi-drones" "demande-au-convoi-drones-done"
-    report true
-  ]
-  report false
-end
-
-;; II. b) demande-au-convoi-drones
-to demande-au-convoi-drones
-  suivi-convoi-drones
-  
-  enrollement-demande-au-convoi
-end
-
-to-report demande-au-convoi-drones-done
-  if intelligent-get-belief "etat enrollement" != "demande au convoi"
-  [
-    ifelse intelligent-get-belief "etat enrollement" = "demande envoyee"
-    [ add-intention "demande-envoyee-drones" "demande-envoyee-drones-done" ]
-    [
-      intelligent-update-belief "etat enrollement" "cherche convoi"
-      intelligent-update-belief "convoi-suivi" nobody
-      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
-    ]
-    report true
-  ]
-  report false
-end
-
-;; II. c) demande-envoyee-drones
-to demande-envoyee-drones
-  suivi-convoi-drones
-  
-  enrollement-demande-envoyee
-end
-
-to-report demande-envoyee-drones-done
-  if intelligent-get-belief "etat enrollement" != "demande envoyee"
-  [
-    if intelligent-get-belief "etat enrollement" = "suivi"
-    [
-      add-intention "protect-convoi" "protect-convoi-done" 
-      report true
-    ]
-    
-    if intelligent-get-belief "etat enrollement" = "demande leader"
-    [ 
-      add-intention "demande-au-leader-drones" "demande-au-leader-drones-done"
-      report true
-    ]
-    
-    intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "convoi-suivi" intelligent-get-belief "convoi-already-protected"
-    intelligent-update-belief "convoi-suivi" nobody
-    add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
-  
-    report true
-  ]
-  report false
-end
-
-to demande-au-leader-drones
-  suivi-convoi-drones
-  
-  enrollement-demande-au-leader
-end
-
-to-report demande-au-leader-drones-done
-  let etat intelligent-get-belief "etat enrollement"
-  if etat != "demande leader"
-  [
-    ifelse etat = "demande envoyee au leader drone"
-    [
-      add-intention "demande-envoyee-au-leader" "demande-envoyee-au-leader-done"
-    ]
-    [
-      intelligent-update-belief "etat enrollement" "cherche convoi"
-      intelligent-update-belief "convoi-suivi" nobody
-      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
-    ]
-    report true
-  ]
-  report false
-end
-
-to demande-envoyee-au-leader
-  suivi-convoi-drones
-  
-  enrollement-demande-envoyee-au-leader
-end
-
-to-report demande-envoyee-au-leader-done
-  let etat intelligent-get-belief "etat enrollement"
-  if etat != "demande envoyee au leader drone"
-  [
-    ifelse etat = "suivi"
-    [ add-intention "protect-convoi" "protect-convoi-done" ]
-    [
-      intelligent-update-belief "etat enrollement" "cherche convoi"
-      intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "convoi-suivi" intelligent-get-belief "convoi-already-protected"
-      intelligent-update-belief "convoi-suivi" nobody
-      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
-    ]
-    
-    report true
-  ]
-  report false
-end
-
-to protect-convoi
-  
-  enrollement-suivi
-  
-  suivi-convoi-drones
-  
-end
-
-to-report protect-convoi-done
-  report false
-end
-
-to suivi-convoi-drones
-  if intelligent-get-belief "convoi-suivi" = nobody [
-    search-convoi-drones
-  ]
-  if intelligent-get-belief "convoi-suivi" != nobody [
-    if not distance-min-drones [
-      ; Rotation
-      rotate-agent intelligent-get-belief "convoi-suivi"
-    ]
-    ; Déplacement
-    if distance-nowrap intelligent-get-belief "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
-  ]
-  
-  ;; Coût du flottement
-  if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
-end
-
-to search-convoi-drones
-  let flag true
-  
-  let targets []
-  ifelse empty? intelligent-get-belief "convoi-already-protected"
-  [ 
-    set targets convois with [leader? and not dead?] in-radius-nowrap vision-radius
-  ]
-  [ 
-    let li intelligent-get-belief "convoi-already-protected"
-    set targets convois with [leader? and not dead? and not member? self li ] in-radius-nowrap vision-radius
-  ]
-  
-  ifelse count targets = 0 [
-    intelligent-update-belief "convoi-suivi" nobody
-  ]
-  [
-    intelligent-update-belief "convoi-suivi" first sort-on [distance-nowrap myself] targets
-  ]
-end
-
-;; II. attaquant
-;; ---
-;; Attaque des ennemis
-
-;; III. ravitailleur
-;; ---
-;; Ravitaille les drones en carburant
-
-;; IV. surveillmant
-;; ---
-;; Surveille le terrain
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;       Mouvements       ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Fait avancer les drones, prend en compte le nowrap et les limites de map
-to fd-drones [ sp ]
-  ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
-    fd sp
-    
-    fuel-consomme "fd" sp
-  ]
-  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
-      fd sp / 5
-      
-      fuel-consomme "fd" (sp / 5)
-    ]
-    [
-      ifelse heading >= 180 [ rt 10 ]
-      [ lt 10 ]
-      
-      ;; Carburant consommé (un rotation vaut trois fois moins qu'un déplacement)
-      
-      fuel-consomme "rotation" 10
-    ]
-  ]
-end
-
-;; Tourne la tête du drone
-to rotate-drone [ goal ]
-  ; Si le drone se trouve à l'endroit souhaité (modulo l'altitude)
-  if is-turtle? goal and [xcor] of goal = xcor and [ycor] of goal = ycor or 
-     is-patch? goal and [pxcor] of goal = xcor and [pycor] of goal = ycor [
-       stop
-  ]
-  
-  ; Calcul de l'angle avec la cible
-  let headingFlag (towards-nowrap goal)
-  let dirCorrection subtract-headings headingFlag heading
-  
-  ; Arrondissement de l'angle (on ne veut pas faire de micro tournant)
-  set dirCorrection precision dirCorrection 2
-  
-  ; Limite de l'angle, pour que ce soit plus realiste
-  ifelse dirCorrection > max-dir [ ; limite a droite
-    set dirCorrection max-dir
-  ]
-  [
-    if dirCorrection < max-dir * -1 [ ; limite a gauche
-      set dirCorrection max-dir * -1
-    ]
-  ]
-  
-  ; On tourne
-  rt dirCorrection
-end
-
-;;;;;;;;;;;;;;;;;;;;;;;;
-;; Fonctions diverses ;;
-;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; I. Fonctions liées au carburant
-;; ---
-;; • check-fuel-drones          : Vérifie s'il y a encore assez de fuel pour revenir à la base
-;; • fuel-consomme              : Met-à-jour le niveau de carburant du drones en fonction de ses actions
-
-;; Vérification du carburant
-to check-fuel-drones
-  let inten intention-name get-intention
-  
-  if inten = "ravitaillement-drones"
-  or inten = "landing-drones"
-  or inten = "reload-drones" 
-  [ stop ]
-  
-  ;; Le patch de la base la plus proche
-  let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
-  
-  ;; Estimation du carburant nécesasire pour rentrer à la base
-  ;; • pourcentage-securite-fuel-drones       : Donne une marge de sécurité
-  ;; ---
-  ;; Calcul
-  ;; • Le drone se déplace jusqu'à la base (fuel-consomme "fd")   : distance-nowrap myself
-  ;; • Le drone flotte dans les airs (fuel-consomme "floating")   : 0.25 / speed (le flottement coût un quart moins cher)
-  ;; • Le drone se laisse une marge                               : pourcentage-securite-fuel-drones
-  ;; • La puissance moteur du drone est prise en compte           : puissance-moteur-drones
-  let fuel-estimate ([distance-nowrap myself] of tmp * ( 1 + 0.25 / speed) + (zcor - solAlt) / 5)
-                    * (1 + pourcentage-securite-fuel-drones) * puissance-moteur-drones
-
-  ;; Vérification du carburant restant
-  if fuel < fuel-estimate [
-    ;; Le drone garde en mémoire la place de la base la plus proche
-    intelligent-update-belief "base-patch" tmp
-    
-    ;; Fin du comportement principal, le drone doit se ravitailler
-    let this-intention get-intention
-    add-intention "take-off-drones" "take-off-drones-done"
-    add-intention "reload-drones" "reload-drones-done"
-    add-intention "landing-drones" "landing-drones-done"
-    add-intention "ravitaillement-drones" "ravitaillement-drones-done"
-    ]
-end
-
-;; Comsomation de carburant
-;; ---
-;; La consommation dépend de la puissance des moteurs du drone,
-;; ainsi que du type de l'action / du mouvement
-;; ---
-;; • mouv                 : Type de l'action effectué
-;;   ---- Types
-;;        • "fd"          : Le drone a avancé devant lui (coût étalon, par mètre)
-;;        • "rotation"    : Le drone a effectué une rotation (coûte trois fois moins cher, pour 10 degrés)
-;;        • "take-off"    : Le drone décolle (ou prend de l'altitude) (coûte 1.5 fois plus cher, par mètre)
-;;        • "landing"     : Le drone aterri (ou perd de l'altitude) (coûte 5 fois moins cher, par mètre)
-;;        • "floating"    : Le drone reste sur place (on ne cumule avec un autre type) (coûte 4 fois moins cher, par tick)
-;;   ----
-;; • nb                   : Valeur associé à l'action (de combien de mètres le drone a avancé, etc)
-to fuel-consomme [ mouv nb ]
-  if mouv = "fd"
-  [ set fuel fuel - nb  * puissance-moteur-drones ]
-  
-  if mouv = "rotation"
-  [ set fuel fuel - (nb / 30) * puissance-moteur-drones ]
-  
-  if mouv = "take-off"
-  [ set fuel fuel - (nb * 1.5)  * puissance-moteur-drones ]
-  
-  if mouv = "landing"
-  [ set fuel fuel - (nb / 5)  * puissance-moteur-drones ]
-  
-  if mouv = "floating"
-  [ set fuel fuel - (1 / 4)  * puissance-moteur-drones ]
-  
-end
-
-;; II. Fonctions utilitaires
-;; ---
-;; at-base-drones            : Renvoie si le drone est à la base
-;; distance-min-drones       : Vérifie si le drone est trop proche d'un autre
-
-to-report at-base-drones
-  ;report abs ([pxcor] of intelligent-get-belief "base-patch" - xcor ) + abs ([pycor] of intelligent-get-belief "base-patch" - ycor ) = 0
-  report distance-nowrap-noZAxis self intelligent-get-belief "base-patch" <= 0.3
-  ;report [distance-nowrap myself] of intelligent-get-belief "base-patch" <= 0.3 + (zcor - solAlt)
-  ;report min [distance-nowrap myself] of patches with [ base? ] <= 1
-end
-
-to-report distance-min-drones
-  if count drones < 2 [ report false ]
-  ; Calcul de l'angle avec la cible
-  let other-drone first sort-on [distance-nowrap myself] other drones
-  if [distance myself] of other-drone > min-distance-drones [ report false ]
-  
-  ; Si le drone se trouve au même endroit que l'autre drone (modulo l'altitude)
-  if [xcor] of other-drone = xcor and [ycor] of other-drone = ycor [
-       report false
-  ]
-  
-  ; Si on arrive là, le drone est près d'un autre, on le fait tourner pour éviter l'autre drone, et on avance
-  let headingFlag (towards-nowrap other-drone)
-  let dirCorrection subtract-headings headingFlag heading
-  
-  
-  if dirCorrection < 120 and dirCorrection > 0[
-    lt 10
-    fuel-consomme "rotation" 10
-    
-    fd-drones speed
-  ]
-  if dirCorrection > -120 and dirCorrection < 0[
-    rt 10
-    fuel-consomme "rotation" 10
-    
-    fd-drones speed
-  ]
-  report true
 end

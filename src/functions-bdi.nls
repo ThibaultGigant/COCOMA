@@ -17,6 +17,9 @@ end
 ; Récupération du belief voulu par son type
 to-report intelligent-get-belief [b-type]
   report belief-content read-first-belief-of-type b-type
+;  ifelse exist-beliefs-of-type b-type
+;  [ report belief-content read-first-belief-of-type b-type ]
+;  [ report nobody ]
 end
 
 to intelligent-lput-belief [b-type new-item]

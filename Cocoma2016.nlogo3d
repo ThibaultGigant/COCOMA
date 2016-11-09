@@ -7,7 +7,12 @@ __includes ["src/functions-astar.nls"
             "src/drones-communications.nls"
             "src/convois-communications.nls"
             "src/functions-bdi.nls"
-            "src/commons.nls"]
+            "src/commons.nls"
+
+            "src/drones/fonctions-generales.nls"
+            "src/drones/protection.nls"
+            "src/drones/intentions-generales.nls"
+            "src/drones/partage-connaissances.nls"]
 
 extensions [sound]
 
@@ -310,6 +315,7 @@ to reset
   setup-drones
   let start-path (plan-astar ([[patch-at 0 0 (pzcor * -1)] of patch-here] of one-of convois with [leader?]) (one-of patches with [objectif?]) astar-longpath)
   set as-path replace-item 0 as-path start-path
+  reset-ticks
 end
 
 to soft-reset
@@ -404,10 +410,10 @@ nb-cars
 Number
 
 BUTTON
-17
-385
-90
-418
+18
+406
+91
+439
 NIL
 setup
 NIL
@@ -520,10 +526,10 @@ astar-visu
 -1000
 
 SLIDER
-17
-332
-189
-365
+18
+353
+190
+386
 simu-speed
 simu-speed
 0
@@ -545,10 +551,10 @@ Debug
 1
 
 TEXTBOX
-11
-302
-161
-320
+12
+323
+162
+341
 Simulation
 12
 0.0
@@ -565,10 +571,10 @@ A*
 1
 
 BUTTON
-99
-385
-162
-418
+100
+406
+163
+439
 NIL
 go
 T
@@ -582,10 +588,10 @@ NIL
 0
 
 BUTTON
-17
-425
-89
-458
+18
+446
+90
+479
 NIL
 reset
 NIL
@@ -599,10 +605,10 @@ NIL
 1
 
 BUTTON
-99
-426
-162
-459
+100
+447
+163
+480
 NIL
 split
 NIL
@@ -621,7 +627,7 @@ INPUTBOX
 348
 115
 nb-enemies
-6
+0
 1
 0
 Number
@@ -717,7 +723,7 @@ INPUTBOX
 418
 115
 nb-drones
-0
+6
 1
 0
 Number
@@ -786,7 +792,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-52
+197
 1
 1
 NIL
@@ -844,7 +850,7 @@ SWITCH
 89
 show-intentions
 show-intentions
-1
+0
 1
 -1000
 
@@ -887,7 +893,7 @@ speed-drones
 speed-drones
 0
 300
-25
+59
 1
 1
 NIL
@@ -920,10 +926,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-18
-464
-90
-498
+19
+485
+91
+519
 NIL
 soft-reset
 NIL
@@ -943,7 +949,7 @@ SWITCH
 131
 show_messages
 show_messages
-0
+1
 1
 -1000
 
@@ -1096,6 +1102,17 @@ enemies-reload-time
 1
 NIL
 HORIZONTAL
+
+SWITCH
+13
+275
+139
+308
+show_debug
+show_debug
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?

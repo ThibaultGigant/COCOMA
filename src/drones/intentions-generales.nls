@@ -1,0 +1,131 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Drones | Intentions générales ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Intentions générales
+;; ---
+;; • take-off        : Décollage du drone
+;; • ravilaillement  : Le drone retourne à la base pour se ravitailler
+;; • landing         : Aterrissage du drone
+;; • reaload         : Le drone remplit son réservoir
+
+;; take-off
+;; ---
+;; Décollage du drone
+to take-off-drones
+  if zcor < max-alt [
+    ;; Le drone descend
+    let last-pitch pitch
+    let last-roll roll
+    set pitch 90
+    fd-drones min (list speed (max-alt - zcor))
+    set pitch last-pitch
+    set roll last-roll
+  ]
+  
+;  let target intelligent-get-belief "convoi-suivi"
+;  
+;  if target != nobody [ rotate-agent target ]
+;  
+;  let delta 6
+;  
+;  ;; Décollage
+;  ifelse zcor < max-alt - 0.6
+;  [
+;    ;; Le drone lève le nez
+;    if pitch < 37 [ set pitch pitch + delta ]
+;  ]
+;  
+;  ;; Fin du décollage imminente
+;  [
+;    ;; Le drone se remet à l'horizontale
+;    ifelse pitch > 2 * delta
+;    [ set pitch pitch - delta ]
+;    [ set pitch delta ]
+;  ]
+;  
+;  fd-drones speed
+end
+
+to-report take-off-drones-done
+  if zcor >= max-alt
+  [
+;    set roll 0
+;    set pitch 0
+    report true
+  ]
+  report false
+end
+
+;; ravitaillement
+;; ---
+;; Le drone retourne à la base pour se ravitailler
+to ravitaillement-drones
+  if not at-base-drones [
+    let base-patch intelligent-get-belief "base-patch"
+    rotate-agent base-patch
+    
+    fd-drones min (list speed ( distance-nowrap-noZAxis self base-patch))
+    
+    ;; Coût du flottement
+    if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
+  ]
+end
+
+to-report ravitaillement-drones-done
+  report at-base-drones
+end
+
+;; landing
+;; ---
+;; Aterrissage du drone
+to landing-drones
+;  let delta 6
+;  
+;  ;; Aterrissage
+;  ifelse zcor < solAlt + 0.6
+;  [
+;    ;; Le drone pique du nez
+;    if pitch > -37 [ set pitch pitch - delta ]
+;  ]
+;  
+;  ;; Fin de l'aterrissage imminente
+;  [
+;    ;; Le drone se remet à l'horizontale
+;    if pitch < (- delta) [ set pitch pitch + delta ]
+;  ]
+;  
+;  fd-drones speed
+  
+  if zcor > solAlt [
+    ;; Le drone descend
+    let last-pitch pitch
+    let last-roll roll
+    set pitch -90
+    fd-drones min (list speed (zcor - solAlt))
+    set pitch last-pitch
+    set roll last-roll
+  ]
+
+end
+
+to-report landing-drones-done
+  if zcor <= solAlt
+  [
+    move-to patch xcor ycor solAlt 
+    report true
+  ]
+  report false
+end
+
+;; reaload
+;; ---
+;; Le drone remplit son réservoir
+to reload-drones
+  if fuel < max-fuel
+  [ set fuel min (list max-fuel (fuel + loading-speed-fuel)) ]
+end
+
+to-report reload-drones-done
+  report fuel = max-fuel
+end

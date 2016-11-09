@@ -149,14 +149,14 @@ end
 ;;   --- Idem, sans le champs "fuel"
 
 ;; Fusion de connaissances
-to-report update-knowledges-drones [new-knowledges]  
+to update-knowledges-drones [new-knowledges]
   if get-performative new-knowledges = "knowledge"
   [
     ;; Récupération des connaissances
     let content get-content new-knowledges
     
     ;; Récupération de la liste des croyances sur les drones
-    let Infos-Drones K-get-Infos-Drones content
+    let Infos-Drones K-get "K-Infos-Drones" content
     
     let tick-of-K 0
     
@@ -185,31 +185,11 @@ to-report update-knowledges-drones [new-knowledges]
             intelligent-update-belief "K-Infos-Drones" lput ? remove-item pos K-Infos-Drones
           ]
         ]
-        
-        
-        ;; Vérification de la date des croyances
-;        set tick-of-K K-get "tick" ?
-;        
-;        ifelse flag
-;        [
-;          ;; Update
-;          ifelse not empty? current-info-drone
-;          [
-;            ;let pos position current-info-drone K-Infos-Drones
-;            ;intelligent-update-belief "K-Infos-Drones" lput ? remove-item pos K-Infos-Drones
-;          ]
-;          [ intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones ]
-;        ]
-;        [
-;          intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones
-;        ]
-          
-          ;show (list "Update" ?)
       ]
     ]
     
     ;; Récupération de la liste des croyances sur les convois
-    let Infos-Convois K-get-Infos-Convois content
+    let Infos-Convois K-get "K-Infos-Convois" content
     
     ;; Pour chaque convoi
     foreach Infos-Convois
@@ -225,12 +205,7 @@ to-report update-knowledges-drones [new-knowledges]
       ]
     ]
   ]
-  
-  report nobody
 end
-
-to-report K-get-Infos-Drones  [K] report item 0 K end
-to-report K-get-Infos-Convois [K] report item 1 K end
 
 
 ;; Retourne le champs voulu dans Info-Drones et Info-Convois
@@ -240,14 +215,6 @@ to-report K-get [field K]
     report item (pos + 1) K
 end
 
-to-report K-get-tick     [K] report item 0 K end
-to-report K-get-turtle   [K] report item 1 K end
-to-report K-get-position [K] report item 2 K end
-to-report K-get-role     [K] report item 3 K end
-to-report K-get-health   [K] report item 4 K end
-to-report K-get-dead?    [K] report item 5 K end
-to-report K-get-fuel     [K] report item 6 K end
-
 to-report K-get-Info-Drone  [drone]
   let li (filter [member? drone ?]  intelligent-get-belief "K-Infos-Drones")
   ifelse empty? li
@@ -256,5 +223,13 @@ to-report K-get-Info-Drone  [drone]
 end
 
 to-report K-get-Info-Convoi [convoi]
-  report item 0 (filter [member? convoi ?] intelligent-get-belief "K-Infos-Convois")
+  let li filter [member? convoi ?] intelligent-get-belief "K-Infos-Convois"
+  ifelse empty? li
+  [ report li ]
+  [ report item 0 li ]
+end
+
+;; Affiche un message seulement si le mode debug est actif
+to show-debug [ msg ]
+  if show_debug = true [ show msg ]
 end

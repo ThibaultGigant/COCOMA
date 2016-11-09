@@ -47,7 +47,7 @@ to enrollement
 end
 
 to-report can-communicate-with-convoi [target]
-  report [distance-nowrap myself] of target < communication-radius-drones
+  report [distance-nowrap myself] of target < communication-radius-drones and not [dead?] of target
 end
 
 to enrollement-cherche-convoi
@@ -82,9 +82,12 @@ to enrollement-demande-envoyee
   if check-message msg "drone-protect" "Accept"
     [
       intelligent-update-belief "etat enrollement" "suivi"
+      set leader? true
       intelligent-update-belief "drone-protect leader" self
       intelligent-update-belief "drone-protect team" (list self)
       intelligent-update-belief "counter enrollement" 0
+      
+      set color [color] of intelligent-get-belief "convoi-suivi"
       stop
     ]
   if check-message msg "drone-protect" "Refuse"
@@ -131,10 +134,14 @@ to enrollement-demande-envoyee-au-leader
   [
     intelligent-update-belief "etat enrollement" "suivi"
     intelligent-update-belief "counter enrollement" 0
+    
+    set color [color] of intelligent-get-belief "drone-protect leader"
+    show [color] of intelligent-get-belief "drone-protect leader"
     stop
   ]
   if check-message msg "drone-protect" "Refuse"
   [
+    intelligent-update-belief "drone-protect leader" nobody
     intelligent-update-belief "etat enrollement" "cherche convoi"
     intelligent-lput-belief "convoi-already-protected" intelligent-get-belief "convoi-suivi"
     intelligent-update-belief "convoi-suivi" nobody
@@ -149,13 +156,14 @@ end
 ;; ou du leader de la flotte pour les autres drones
 ;; -----------------
 to enrollement-suivi
-  let leader intelligent-get-belief "drone-protect leader"
-  
-  if leader = self [
+    if leader? [
 ;    if check-message msg "drone-protect" "R-U-here?"
 ;    [ send create-complete-reply msg "drone-protect" "I'm-here" ]
     enrollement-equipe
+    stop
   ]
+    
+  let leader intelligent-get-belief "drone-protect leader"
 end
 
 ;; Le drone leader d'une équipe de protecteur se charge des postulations des
@@ -171,7 +179,7 @@ to enrollement-equipe
     ifelse not member? [self] of turtle read-from-string sender team and length team < 4
     [
       send create-complete-msg sender "drone-protect" "Accept"
-      intelligent-update-belief "drone-protect team" lput sender team
+      intelligent-update-belief "drone-protect team" lput (drone read-from-string sender) team
     ]
     [
       send create-complete-msg sender "drone-protect" "Refuse"
@@ -181,20 +189,4 @@ end
 
 to add-One-to-counter
   intelligent-update-belief "counter enrollement" (intelligent-get-belief "counter enrollement" + 1)
-end
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Partage des connaissances ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Regroupement des connaissances
-to-report send-knowledges-drones
-  let content fput (list "tick" ticks "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
-  let content-convoi intelligent-get-belief "K-Infos-Convois"
-  let msg create-complete-msg ([self] of other drones) "knowledge" fput content fput content-convoi []
-  
-  send msg
-  
-  report msg
 end

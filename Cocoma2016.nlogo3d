@@ -329,6 +329,61 @@ to soft-reset
   set as-path replace-item 0 as-path start-path
 end
 
+to reset-globals
+  set nb-cars 6
+  set nb-mountains 3
+  set nb-lakes 2
+  set nb-rivers 3
+  set nb-enemies 3
+  set nb-drones 3
+
+  set debug false
+  set debug-verbose false
+  set show_debug false
+  set show-intentions false
+  set show_messages false
+
+  set max-counter 15
+  set simu-speed 1
+
+  set astar-longpath true
+  set astar-randpath false
+  set astar-visu false
+  set astar-visu-more false
+  set astar-faster 20
+  set astar-max-depth 100000
+
+  set ammos-degats 50
+  set ammos-speed 4
+  set ammos-accuracy 80
+
+  set convois-health-points 100
+
+  set average-munition-enemies 25
+  set average-carburant-enemies 5000
+  set safe-distance 5
+  set enemies-health-points 50
+  set enemies-vision-radius 22
+  set enemies-shoot-radius 5
+  set enemies-communication-radius 50
+  set enemies-reload-time 10
+
+  set max-alt-drones 3
+  set min-alt-drones 2
+  set drones-suivi-radius 1
+  set puissance-moteur-drones 0.4
+  set speed-drones 59
+  set max-health-drones 50
+  set drones-vision-radius 50
+  set max-fuel-drones 197
+  set min-distance-drones 4
+  set loading-speed-fuel 100
+  set communication-radius-drones 67
+
+  set vision-angle 180
+
+end
+
 ;;;;;;;;;;;;;;;;;;; DON'T FORGET DON CAMILLO : TODO ;;;;;;;;;;;;;;;;;;;;;;;
 ; Verifie si les leaders sont toujours en vie
 ; Reafecte le poste selon les cas
@@ -521,7 +576,7 @@ SWITCH
 316
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -627,7 +682,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+3
 1
 0
 Number
@@ -666,7 +721,7 @@ average-carburant-enemies
 average-carburant-enemies
 0
 5000
-4994
+5000
 1
 1
 NIL
@@ -723,7 +778,7 @@ INPUTBOX
 418
 115
 nb-drones
-6
+3
 1
 0
 Number
@@ -850,7 +905,7 @@ SWITCH
 89
 show-intentions
 show-intentions
-0
+1
 1
 -1000
 
@@ -1110,9 +1165,26 @@ SWITCH
 308
 show_debug
 show_debug
-0
+1
 1
 -1000
+
+BUTTON
+98
+487
+227
+520
+Reset globals
+reset-globals
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1457,7 +1529,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

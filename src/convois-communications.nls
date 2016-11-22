@@ -51,7 +51,7 @@ to receive-split-request-leader
       send create-complete-msg ? "split-cortege" split-id
     ]
     ;; Mise à jour de la propre connaissance sur le cortege
-    update-belief-cortege split-id
+    split-update-belief-cortege split-id
   ]
 end
 
@@ -62,7 +62,7 @@ to receive-split-cortege-convoi
   [
     let split-id get-content msg
     ;; Mise à jour de la propre connaissance sur le cortege
-    update-belief-cortege split-id
+    split-update-belief-cortege split-id
     ;; Mise à jour caractéristiques si on est nouveau leader
     if who = split-id
     [
@@ -114,4 +114,20 @@ to-report get-counter-timeOut-protecteurs [protecteur]
   ]
   
   report nobody
+end
+
+
+to receive-death-messages
+  let msg get-msg-if-performative "Death notification"
+  if msg != nobody
+  [
+    let dead-convoi get-content msg
+    ;; Mise à jour de la propre connaissance sur le cortege
+    intelligent-update-belief "cortege-buddies" remove dead-convoi intelligent-get-belief "cortege-buddies"
+    
+    ;; Si c'était notre leader, il faut changer le leader
+    intelligent-update-belief "leader" item 0 intelligent-get-belief "cortege-buddies"
+    ;; Si on est le nouveau leader, il faut s'en rendre compte
+    if [who] of self = intelligent-get-belief "leader" [ set leader? true ]
+  ]
 end

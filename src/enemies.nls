@@ -147,8 +147,10 @@ to shoot-target
   if elapsed-time > reload-time [
     if distance intelligent-get-belief "target" < shoot-radius
     [
-      sound:play-note "GUNSHOT" 60 64 reload-time
+      sound:play-note "GUNSHOT" 60 64 1
       set elapsed-time 0
+      
+      if random 100 < ammos-accuracy [ ask intelligent-get-belief "target" [ set hp hp - ammos-degats ] ]
     ]
   ]
 end

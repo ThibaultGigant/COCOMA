@@ -9,6 +9,9 @@
 to convois-think
 
   if nb-cars > 0 [
+    
+    ;; Vérification des convois morts
+    ask convois [ check-if-alive ]
 
     let first-car min [who] of convois
 
@@ -78,7 +81,6 @@ to convois-think
     ask convois with [not finished? and not dead?] [
       msg-processing
     ]
-    
   ]
 end
 
@@ -170,22 +172,13 @@ to split-convoi [ id ] ; id = cars / 2
   ;; Récupération du nouveau leader
   let new-leader convoi id
   
-;  ;; Mise en place des caractéristiques du nouveau leader
-;  ask new-leader [
-;    set leader? true
-;    set color blue
-;    set astar-longpath not astar-longpath
-;    ask my-out-links [die]
-;  ]
-
-  
-  
+  ;; mise à jour des connaissances sur le cortege pour tous les membres du cortege
   ask convois
   [
-    update-belief-cortege id
+    split-update-belief-cortege id
   ]
   
-  ; affichage de astar
+  ; affichage de astar pour le chemin suivi par le nouveau leader
   astar-affichage ([[patch-at 0 0 (pzcor * -1)] of patch-here] of new-leader) (one-of patches with [objectif?])
 end
 
@@ -200,6 +193,33 @@ to split
   ]
 end
 
+;; Vérifie que le convoi est en vie, sinon envoie un message au reste du cortège et relie celui d'après avec celui d'avant
+to check-if-alive
+  if hp <= 0
+  [
+    ;; Récupération du convoi d'avant et d'après
+    let previous-convoi nobody
+    let next-convoi nobody
+    if any? my-out-links [ ask one-of my-out-links [ set previous-convoi other-end ] ]
+    if any? my-in-links [ ask one-of my-in-links [ set next-convoi other-end ] ]
+    
+    if previous-convoi != nobody and next-convoi != nobody
+    [
+      ;; Création du lien entre le convoi suivant et le convoi précédent
+      ask next-convoi[ create-convoi-link-to previous-convoi ]
+    ]
+    
+    ;; Suppression des liens
+    if previous-convoi != nobody [ ask my-out-links [ die ] ]
+    if next-convoi != nobody [ ask my-in-links [ die ] ]
+    
+    ;; Envoi d'un message signifiant sa mort aux autres membres du cortege
+    i-am-dead intelligent-get-belief "cortege-buddies"
+    set dead? true
+    die
+  ]
+end
+
 
 ;; Beliefs ;;
 ;;---------;;
@@ -211,7 +231,7 @@ to setup-convois-beliefs
   intelligent-update-belief "drone-protecteur" nobody
   
   ;; Connaissances sur le cortege auquel on appartient  
-  intelligent-update-belief "cortege-buddies" sort-on [who] other convois
+  intelligent-update-belief "cortege-buddies" sort-on [who] convois
   intelligent-update-belief "leader" min-one-of convois [who] ;; Le leader du cortege auquel le convoi appartient, donc different de leader?
   
   ;; show intelligent-get-belief "leader"
@@ -220,7 +240,7 @@ end
 
 
 ;; Met à jour les connaissances sur le cortège, par suppression de la liste à partir de l'id passé en argument
-to update-belief-cortege [split-id]
+to split-update-belief-cortege [split-id]
   let cortege intelligent-get-belief "cortege-buddies"
   ;; Si on est avant, dans le convoi, on supprime après l'id, sinon on supprime avant et on change le leader
   ifelse who < split-id
@@ -245,6 +265,8 @@ to msg-processing
   ifelse leader?
   [ receive-split-request-leader ]
   [ receive-split-cortege-convoi ]
+  
+  receive-death-messages
   
   recrutement-drones
 end

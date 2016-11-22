@@ -127,6 +127,15 @@ to-report get-msg-if-performative [performative]
   report nobody
 end
 
+;; Envoie un message aux agents de la liste signifiant que l'emetteur est mort tristement
+;; • list-of-turtles : liste d'agents récepteurs du message
+to i-am-dead [ list-of-turtles ]
+  foreach list-of-turtles
+  [
+    send create-complete-msg ? "Death notification" self
+  ]
+end
+
 ;;;;;;;;;;;;;;;;;;;
 ;; Connaissances ;;
 ;;;;;;;;;;;;;;;;;;;

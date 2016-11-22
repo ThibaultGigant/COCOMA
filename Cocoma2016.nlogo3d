@@ -82,8 +82,6 @@ to setup
   ;setup-citizens
 ;  setup-hq
 
-  set show_messages true
-
   setup-precache
   display ; reenable gui display
   reset-ticks

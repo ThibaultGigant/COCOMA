@@ -83,8 +83,8 @@ to check-fuel-drones
 ;  [ 
 ;    set rotation (abs (subtract-headings towards-nowrap tmp heading)) / 30
 ;  ]
-  let fuel-estimate ( [distance-nowrap myself] of tmp * ( 1 + 0.25 / speed) + (zcor - solAlt) / 5 + rotation + (zcor - solAlt) / 2 )
-                    * (1.1 + pourcentage-securite-fuel-drones) * puissance-moteur-drones
+  ;let fuel-estimate ;( [distance-nowrap myself] of tmp * ( 1 + 0.25 / speed) + (zcor - solAlt) / 5 + rotation + (zcor - solAlt) / 2 )
+                    ;* (1.1 + pourcentage-securite-fuel-drones) * puissance-moteur-drones
 
   ;; Vérification du carburant restant
   if fuel < fuel-estimate [
@@ -98,6 +98,30 @@ to check-fuel-drones
     add-intention "landing-drones" "landing-drones-done"
     add-intention "ravitaillement-drones" "ravitaillement-drones-done"
     ]
+end
+
+;; fuel-estimate
+;; ---
+;; Estimation du carburant nécesasire pour rentrer à la base
+;; • pourcentage-securite-fuel-drones       : Donne une marge de sécurité
+;; ---
+;; Calcul
+;; • Le drone se déplace jusqu'à la base (fuel-consomme "fd")   : distance-nowrap myself
+;; • Le drone se tourne vers la base (fuel-consomme "rotate")   : abs subtract-headings toward-nowrap tmp heading /30
+;; • Le drone flotte dans les airs (fuel-consomme "floating")   : 0.25 / speed (le flottement coût un quart moins cher)
+;; • Le drone aterri (fuel-consomne "landing")                  : (zcor - solAlt) / 2
+;; • Le drone se laisse une marge                               : pourcentage-securite-fuel-drones
+;; • La puissance moteur du drone est prise en compte           : puissance-moteur-drones
+to-report fuel-estimate
+  ;; Le patch de la base la plus proche
+  let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
+  let rotation 0
+;  if abs (xcor - [pxcor] of tmp) + abs (ycor - [pycor] of tmp) != 0
+;  [ 
+;    set rotation (abs (subtract-headings towards-nowrap tmp heading)) / 30
+;  ]
+  report ( [distance-nowrap myself] of tmp * ( 1 + 0.25 / speed) + (zcor - solAlt) / 5 + rotation + (zcor - solAlt) / 2 )
+         * (1.1 + pourcentage-securite-fuel-drones) * puissance-moteur-drones
 end
 
 ;; Comsomation de carburant

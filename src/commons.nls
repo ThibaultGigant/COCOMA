@@ -183,6 +183,7 @@ to update-knowledges-drones [new-knowledges]
           [
             let pos position current-info-drone K-Infos-Drones
             intelligent-update-belief "K-Infos-Drones" lput ? remove-item pos K-Infos-Drones
+            set K-drones-updated true
           ]
         ]
       ]

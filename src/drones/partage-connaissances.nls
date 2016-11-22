@@ -2,47 +2,117 @@
 ;; Drones | Partage des connaissances ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; send-knowledges-drones
+;; ---
+;; Envoie un message aux drones visés,
+;; contenant ses propres informations s'il y a eu une modification
 to send-knowledges-drones
-  let receivers get-receivers-drones
+  
+  if (last-role         != intention-name get-intention or
+      last-isAttacked   != isAttacked or
+      last-stat-of-fuel != floor (fuel / fuel-estimate) or
+      K-drones-updated)
+  [ set-drones-receivers ]
+  
+  ;; Récuperation des drones à qui envoyer le message
+  let receivers []
+  let liste intelligent-get-belief "K-drones-receivers"
+  let new-liste liste
+  foreach liste
+  [
+    if can-communicate-with-convoi ?
+    [
+      set receivers lput ? receivers
+      set new-liste remove position ? new-liste new-liste
+    ]
+  ]
+  
+  intelligent-update-belief "K-drones-receivers" new-liste
+  
   if empty? receivers [ stop ]
   
   let content create-knowledges-drones
-  let msg create-complete-msg receivers "knowledge" content
-  send msg
-  
+  if content != nobody
+  [
+    let msg create-complete-msg receivers "knowledge" content
+    send msg
+  ]
 end
 
+;; create-knowledges-drones
+;; ---
 ;; Regroupement des connaissances
+;; Ne crée un nouveau knowledge que s'il y a eu une modification concernant :
+;; • Le rôle du drone
+;; • La présence d'attaque ennemi
+;; • L'état du carburant restant
+;; • Une information sur un autre drone --- TODO le faire aussi pour une modif de convoi
 to-report create-knowledges-drones
-  let content fput (list "tick" ticks "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
-  let content-convoi intelligent-get-belief "K-Infos-Convois"
   
+  let stat-of-fuel floor (fuel / fuel-estimate)
   
-  report (list "K-Infos-Drones" content "K-Infos-Convois" content-convoi)
+  if (last-role         != intention-name get-intention or
+      last-isAttacked   != isAttacked or
+      last-stat-of-fuel != stat-of-fuel or
+      K-drones-updated)
+  [  
+    let content fput (list "tick" ticks "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
+    let content-convoi intelligent-get-belief "K-Infos-Convois"
+    
+    
+    set last-role intention-name get-intention
+    set last-isAttacked isAttacked
+    set last-stat-of-fuel stat-of-fuel
+    
+    report (list "K-Infos-Drones" content "K-Infos-Convois" content-convoi)
+  ]
+  
+  report nobody
 end
 
-to-report get-receivers-drones
+;; get-receivers-drones
+;; ---
+;; Récupère les destinataires du message de partage des connaissances des drones
+;; • to-communicate            : Si vrai, renvoie seulement les agents dans le champs de communication
+;;                               Sinon, renvoie tous les agents qui doivent recevoir le message
+;; ---
+;; • drone-protect
+;; • • leader                  : Envoie à toute son équipe, aux autres drones leader, et au convoi leader
+;; • • Sinon                   : Envoie à son leader s'il en a un, sinon ??? TODO
+to-report get-receivers-drones [to-communicate]
   let role intelligent-get-belief "role"
   
   if role = "drone-protect"
   [
     if leader?
     [
-      let other-leaders other drones with [ leader? and can-communicate-with-convoi self ]
+      let other-leaders other drones with [ leader? and (not to-communicate or can-communicate-with-convoi self) ]
       let team intelligent-get-belief "drone-protect team"
       if not empty? team
       [ set team remove-item 0 team ]
       
-      report sort sentence other-leaders team
+      report sort (sentence other-leaders team intelligent-get-belief "convoi-suivi")
     ]
     
     if intelligent-get-belief "drone-protect leader" != nobody
     [
       let leader intelligent-get-belief "drone-protect leader"
-      if leader = nobody [ report [] ]
+      if leader = nobody
+      [
+        ;; TODO envoyer des info à d'autres s'il le faut
+        report []
+      ]
       report (list leader)
     ]
     
     report sort other drones with [ can-communicate-with-convoi self ]
   ]
+end
+
+;; K-drones-updated
+;; ---
+;; Ajoute à la liste des receivers les agents qui devronts recevoir les updates
+to set-drones-receivers
+  intelligent-update-belief "K-drones-receivers" get-receivers-drones false
+  set K-drones-updated false
 end

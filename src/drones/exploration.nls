@@ -1,0 +1,127 @@
+;;;;;;;;;;;;;;;;;;;;
+;; Drone Explorer ;;
+;;;;;;;;;;;;;;;;;;;;
+
+to ancre-I-Mouvement end
+
+;; explore-drones
+;; ---
+;; Exploration du terrain
+;; Le drone cherche une zone qui n'a pas été explorée depuis un certain temps
+;; S'il n'en trouve pas, il bouge aléatoirement
+to explore-drones
+  let center intelligent-get-belief "explorer center"
+  if center = nobody
+  [
+    let liste center-to-explore-drones
+    if not empty? liste
+    [
+      intelligent-update-belief "explorer center" one-of liste
+    ]
+  ]
+  
+  ifelse center != nobody
+  [
+    go-to-patch-to-explore-drones
+  ]
+  [
+    random-move-nowrap-drones
+  ]
+end
+
+to-report explore-drones-done
+  report false
+end
+
+;; center-to-explore-drones
+;; ---
+;; Retourne la liste des zones qui n'ont pas été explorées depuis un certain temps
+to-report center-to-explore-drones
+  let etat-terrain intelligent-get-belief "etat terrain"
+  let liste-patches center-zones-drones
+  let liste []
+  let center nobody
+  let center-to-explore []
+  foreach liste-patches
+  [
+    set center item (position ? etat-terrain + 1) etat-terrain
+    if ticks - center >= time-to-check-zone-drones
+    [
+      set liste lput ? liste
+    ]
+  ]
+  report liste
+end
+
+;; go-to-patch-to-explore-drones
+;; ---
+;; Le drone se dirige vers la zone, et l'explore
+to go-to-patch-to-explore-drones
+  let center intelligent-get-belief "explorer center"
+  let etat-terrain intelligent-get-belief "etat terrain"
+;  if max (list (abs ([pxcor] of center - xcor)) (abs ([pycor] of center - ycor))) > floor (taille-zone-drones / 2)
+  let current-center zone-of-path-drones patch-here
+  ifelse current-center != center
+  [
+    if not distance-min-drones [
+      ; Rotation
+      rotate-agent center
+    ]
+    ; Déplacement
+    fd-drones speed
+    
+    let pos position current-center etat-terrain
+    intelligent-update-belief "etat terrain" lput ticks (lput current-center remove-item pos (remove-item (pos + 1 ) etat-terrain))
+  ]
+  [
+    check-zone-drones
+  ]
+end
+
+;; zone-of-path-drones
+;; ---
+;; the-patch : Le patch à analyser
+;; Renvoie la zone dans laquelle se trouve le patch donné
+to-report zone-of-path-drones [the-patch]
+  ;show floor ([pxcor] of the-patch / taille-zone-drones) mod floor (max-pxcor / taille-zone-drones + 1)
+  let p patch (floor ([pxcor] of the-patch / taille-zone-drones) mod floor (max-pxcor / taille-zone-drones + 1) * taille-zone-drones + (floor taille-zone-drones / 2) - 1)
+              (floor ([pycor] of the-patch / taille-zone-drones) mod floor (max-pxcor / taille-zone-drones + 1) * taille-zone-drones + (floor taille-zone-drones / 2) - 1 ) 0
+  report p
+end
+
+;; setup-etat-terrain-drones
+;; ---
+;; Renvoie la liste des etats initiaux des zones
+to-report setup-etat-terrain-drones
+  let liste []
+  foreach sort patches with [ pxcor - (floor (pxcor / taille-zone-drones)) * taille-zone-drones  = floor (taille-zone-drones / 2) and pycor - (floor (pycor / taille-zone-drones)) * taille-zone-drones = floor (taille-zone-drones / 2) and pzcor = 0]
+  [
+    set liste lput ticks lput ? liste
+  ]
+  report liste
+end
+
+;; center-zones-drones
+;; ---
+;; Renvoie la liste des zones (représentés par leurs patchs centrals)
+to-report center-zones-drones
+  report sort patches with [ pxcor - (floor (pxcor / taille-zone-drones)) * taille-zone-drones  = floor (taille-zone-drones / 2) and pycor - (floor (pycor / taille-zone-drones)) * taille-zone-drones = floor (taille-zone-drones / 2) and pzcor = 0]
+end
+
+;; check-zone-drones
+;; ---
+;; Vérifie la zone dans laquelle est le drone
+to check-zone-drones
+  let center intelligent-get-belief "explorer center"
+  ;; recherche une autre zone a explorer
+  if true
+  [
+    ;; Mise a jour de l'état du terrain
+    ;; La zone vient d'être explorée
+    let etat-terrain intelligent-get-belief "etat terrain"
+    let pos position center etat-terrain
+    intelligent-update-belief "etat terrain" lput ticks (lput center remove-item pos (remove-item (pos + 1 ) etat-terrain))
+    
+    intelligent-update-belief "explorer center" nobody
+  ]
+end

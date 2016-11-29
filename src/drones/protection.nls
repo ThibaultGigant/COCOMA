@@ -46,6 +46,13 @@ to demande-au-convoi-drones
 end
 
 to-report demande-au-convoi-drones-done
+  if intelligent-get-belief "counter enrollement" >= 30
+  [
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-update-belief "convoi-suivi" nobody
+    add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+    report true
+  ]
   if intelligent-get-belief "etat enrollement" != "demande au convoi"
   [
     ifelse intelligent-get-belief "etat enrollement" = "demande envoyee"
@@ -70,6 +77,13 @@ to demande-envoyee-drones
 end
 
 to-report demande-envoyee-drones-done
+  if intelligent-get-belief "counter enrollement" >= 30
+  [
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-update-belief "convoi-suivi" nobody
+    add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+    report true
+  ]
   if intelligent-get-belief "etat enrollement" != "demande envoyee"
   [
     if intelligent-get-belief "etat enrollement" = "suivi"
@@ -104,6 +118,13 @@ to demande-au-leader-drones
 end
 
 to-report demande-au-leader-drones-done
+  if intelligent-get-belief "counter enrollement" >= 30
+  [
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-update-belief "convoi-suivi" nobody
+    add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+    report true
+  ]
   let etat intelligent-get-belief "etat enrollement"
   if etat != "demande leader"
   [
@@ -131,6 +152,13 @@ to demande-envoyee-au-leader
 end
 
 to-report demande-envoyee-au-leader-done
+  if intelligent-get-belief "counter enrollement" >= 30
+  [
+    intelligent-update-belief "etat enrollement" "cherche convoi"
+    intelligent-update-belief "convoi-suivi" nobody
+    add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+    report true
+  ]
   let etat intelligent-get-belief "etat enrollement"
   if etat != "demande envoyee au leader drone"
   [

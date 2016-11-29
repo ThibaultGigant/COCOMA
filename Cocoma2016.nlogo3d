@@ -12,7 +12,8 @@ __includes ["src/functions-astar.nls"
             "src/drones/fonctions-generales.nls"
             "src/drones/protection.nls"
             "src/drones/intentions-generales.nls"
-            "src/drones/partage-connaissances.nls"]
+            "src/drones/partage-connaissances.nls"
+            "src/drones/exploration.nls"]
 
 extensions [sound]
 
@@ -77,6 +78,7 @@ to setup
     ]
   ]
   if not debug and not debug-verbose [no-display]
+  reset-ticks
   setup-drones
   setup-enemies
   ;setup-citizens
@@ -84,7 +86,6 @@ to setup
 
   setup-precache
   display ; reenable gui display
-  reset-ticks
 end
 
 ; Initial parameters
@@ -420,10 +421,10 @@ ticks
 30.0
 
 SWITCH
-15
-190
-118
-223
+22
+183
+125
+216
 debug
 debug
 1
@@ -431,10 +432,10 @@ debug
 -1000
 
 SWITCH
-13
-235
-178
-268
+20
+228
+185
+261
 debug-verbose
 debug-verbose
 1
@@ -463,10 +464,10 @@ nb-cars
 Number
 
 BUTTON
-18
-406
-91
-439
+25
+399
+98
+432
 NIL
 setup
 NIL
@@ -513,10 +514,10 @@ nb-rivers
 Number
 
 INPUTBOX
-476
-196
-637
-256
+483
+189
+644
+249
 astar-faster
 20
 1
@@ -524,10 +525,10 @@ astar-faster
 Number
 
 INPUTBOX
-476
-270
-637
-330
+483
+263
+644
+323
 astar-max-depth
 100000
 1
@@ -535,10 +536,10 @@ astar-max-depth
 Number
 
 SWITCH
-284
-194
-448
-227
+291
+187
+455
+220
 astar-longpath
 astar-longpath
 0
@@ -546,10 +547,10 @@ astar-longpath
 -1000
 
 SWITCH
-284
-238
-447
-271
+291
+231
+454
+264
 astar-randpath
 astar-randpath
 1
@@ -557,10 +558,10 @@ astar-randpath
 -1000
 
 SWITCH
-281
-331
-443
-364
+288
+324
+450
+357
 astar-visu-more
 astar-visu-more
 1
@@ -568,10 +569,10 @@ astar-visu-more
 -1000
 
 SWITCH
-282
-283
-445
-316
+289
+276
+452
+309
 astar-visu
 astar-visu
 1
@@ -579,10 +580,10 @@ astar-visu
 -1000
 
 SLIDER
-18
-353
-190
-386
+25
+346
+197
+379
 simu-speed
 simu-speed
 0
@@ -594,40 +595,40 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-9
-156
-159
-174
+16
+149
+166
+167
 Debug
 12
 0.0
 1
 
 TEXTBOX
-12
-323
-162
-341
+19
+316
+169
+334
 Simulation
 12
 0.0
 1
 
 TEXTBOX
-274
-165
-424
-183
+281
+158
+431
+176
 A*
 12
 0.0
 1
 
 BUTTON
-100
-406
-163
-439
+107
+399
+170
+432
 NIL
 go
 T
@@ -641,10 +642,10 @@ NIL
 0
 
 BUTTON
-18
-446
-90
-479
+25
+439
+97
+472
 NIL
 reset
 NIL
@@ -658,10 +659,10 @@ NIL
 1
 
 BUTTON
-100
-447
-163
-480
+107
+440
+170
+473
 NIL
 split
 NIL
@@ -680,26 +681,26 @@ INPUTBOX
 348
 115
 nb-enemies
-3
+0
 1
 0
 Number
 
 TEXTBOX
-280
-386
-430
-404
+287
+379
+437
+397
 Ennemis
 11
 0.0
 1
 
 SLIDER
-280
-411
-495
-444
+287
+404
+502
+437
 average-munition-enemies
 average-munition-enemies
 0
@@ -711,10 +712,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-280
-448
-494
-481
+287
+441
+501
+474
 average-carburant-enemies
 average-carburant-enemies
 0
@@ -726,10 +727,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-498
-411
-685
-444
+505
+404
+692
+437
 enemies-vision-radius
 enemies-vision-radius
 0
@@ -741,10 +742,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-498
-448
-685
-481
+505
+441
+692
+474
 enemies-shoot-radius
 enemies-shoot-radius
 0
@@ -756,10 +757,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-280
-486
-494
-519
+287
+479
+501
+512
 safe-distance
 safe-distance
 0
@@ -776,26 +777,26 @@ INPUTBOX
 418
 115
 nb-drones
-3
+1
 1
 0
 Number
 
 TEXTBOX
-748
-383
-898
-401
+755
+376
+905
+394
 Drones
 11
 0.0
 1
 
 SLIDER
-748
-410
-920
-443
+755
+403
+927
+436
 max-alt-drones
 max-alt-drones
 0
@@ -807,10 +808,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-749
-447
-921
-480
+755
+439
+927
+472
 min-alt-drones
 min-alt-drones
 0
@@ -822,10 +823,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-924
-410
-1096
-443
+931
+403
+1103
+436
 drones-vision-radius
 drones-vision-radius
 0
@@ -837,10 +838,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-924
-447
-1096
-480
+931
+439
+1103
+472
 max-fuel-drones
 max-fuel-drones
 0
@@ -852,10 +853,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-748
-483
-920
-516
+1134
+460
+1306
+493
 drones-suivi-radius
 drones-suivi-radius
 0
@@ -867,10 +868,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-925
-483
-1097
-516
+932
+475
+1104
+508
 min-distance-drones
 min-distance-drones
 0
@@ -882,10 +883,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-498
-486
-685
-519
+505
+479
+692
+512
 enemies-communication-radius
 enemies-communication-radius
 0
@@ -903,15 +904,15 @@ SWITCH
 89
 show-intentions
 show-intentions
-1
+0
 1
 -1000
 
 SLIDER
-749
-518
-920
-551
+755
+475
+926
+508
 puissance-moteur-drones
 puissance-moteur-drones
 0
@@ -923,10 +924,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-925
-520
-1097
-553
+932
+512
+1104
+545
 loading-speed-fuel
 loading-speed-fuel
 0
@@ -938,10 +939,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-750
-560
-922
-593
+755
+511
+927
+544
 speed-drones
 speed-drones
 0
@@ -964,10 +965,10 @@ max-counter
 Number
 
 SLIDER
-926
-558
-1098
-591
+932
+548
+1104
+581
 communication-radius-drones
 communication-radius-drones
 0
@@ -979,10 +980,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-19
-485
-91
-519
+26
+478
+98
+512
 NIL
 soft-reset
 NIL
@@ -1007,10 +1008,10 @@ show_messages
 -1000
 
 SLIDER
-751
-598
-923
-631
+755
+547
+927
+580
 max-health-drones
 max-health-drones
 0
@@ -1022,10 +1023,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-281
-597
-496
-630
+288
+590
+503
+623
 vision-angle
 vision-angle
 10
@@ -1037,30 +1038,30 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-284
-569
-434
-587
+291
+562
+441
+580
 Variables communes
 12
 0.0
 1
 
 TEXTBOX
-731
-164
-881
-182
+738
+157
+888
+175
 Munitions
 11
 0.0
 1
 
 SLIDER
-721
-187
-893
-220
+728
+180
+900
+213
 ammos-degats
 ammos-degats
 0
@@ -1072,10 +1073,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-897
-187
-1124
-220
+904
+180
+1131
+213
 ammos-speed
 ammos-speed
 1
@@ -1087,10 +1088,10 @@ xsimu-speed
 HORIZONTAL
 
 SLIDER
-721
-223
-893
-256
+728
+216
+900
+249
 ammos-accuracy
 ammos-accuracy
 0
@@ -1102,20 +1103,20 @@ ammos-accuracy
 HORIZONTAL
 
 TEXTBOX
-723
-305
-873
-323
+730
+298
+880
+316
 Convois
 11
 0.0
 1
 
 SLIDER
-725
-328
-918
-361
+732
+321
+925
+354
 convois-health-points
 convois-health-points
 0
@@ -1127,10 +1128,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-280
-525
-493
-558
+287
+518
+500
+551
 enemies-health-points
 enemies-health-points
 0
@@ -1142,10 +1143,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-498
-523
-685
-556
+505
+516
+692
+549
 enemies-reload-time
 enemies-reload-time
 0
@@ -1157,10 +1158,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-13
-275
-139
-308
+20
+268
+146
+301
 show_debug
 show_debug
 1
@@ -1168,10 +1169,10 @@ show_debug
 -1000
 
 BUTTON
-98
-487
-227
-520
+105
+480
+234
+513
 Reset globals
 reset-globals
 NIL
@@ -1183,6 +1184,86 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+1348
+460
+1596
+493
+time-to-check-zone-drones
+time-to-check-zone-drones
+20
+10000
+2000
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+1350
+400
+1500
+418
+Exploration
+12
+0.0
+1
+
+TEXTBOX
+1140
+401
+1290
+419
+Protection
+12
+0.0
+1
+
+SLIDER
+1348
+496
+1533
+529
+taille-zone-drones
+taille-zone-drones
+11
+61
+21
+10
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1348
+424
+1520
+457
+nb-explorator
+nb-explorator
+0
+nb-drones
+1
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1134
+425
+1306
+458
+nb-protector
+nb-protector
+0
+nb-drones - nb-explorator
+0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?

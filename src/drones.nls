@@ -90,6 +90,10 @@ drones-own [
 to setup-drones
   create-drones nb-drones
   load-shapes-3d "ressources/drone.nlshape"
+  
+  let tmp-nb-protector nb-protector
+  let tmp-nb-explorator nb-explorator
+  
   ask drones [
     ; Init apparence NetLogo
     set shape "turtle"
@@ -151,9 +155,22 @@ to setup-drones
     [ set heading 90 ]
     
     ;; Stratégie
-    add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
-    add-intention "take-off-drones" "take-off-drones-done"
-    set last-role intention-name get-intention
+    ifelse tmp-nb-protector > 0
+    [
+      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+      add-intention "take-off-drones" "take-off-drones-done"
+      set last-role intention-name get-intention
+      set tmp-nb-protector tmp-nb-protector - 1
+    ]
+    [
+      if tmp-nb-explorator > 0
+      [
+        add-intention "explore-drones" "explore-drones-done"
+        add-intention "take-off-drones" "take-off-drones-done"
+        set last-role intention-name get-intention
+        set tmp-nb-explorator tmp-nb-explorator - 1
+      ]
+    ]
   ]
 end
 
@@ -170,6 +187,8 @@ to setup-drones-beliefs
   
   intelligent-update-belief "base-patch" nobody
   intelligent-update-belief "last-statu" "enBase"
+  intelligent-update-belief "etat terrain" setup-etat-terrain-drones
+  intelligent-update-belief "explorer center" nobody
 end
 
 to soft-reset-drones

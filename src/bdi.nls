@@ -45,6 +45,7 @@ end
 to remove-belief [bel]
  set beliefs remove bel beliefs 
 end 
+  
  
 ;;; return true if a specific belief belong to the set of beliefs
 to-report exists-belief [bel]

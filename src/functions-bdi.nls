@@ -28,3 +28,12 @@ to intelligent-lput-belief [b-type new-item]
   [ intelligent-update-belief b-type (list new-item) ]
   [ intelligent-update-belief b-type lput new-item li]
 end
+
+;; Retire un belief depuis sa clé
+to remove-beliefs-with-key [key]
+  foreach beliefs [
+   if first ? = key [
+     set beliefs remove ? beliefs    
+   ] 
+  ]
+end

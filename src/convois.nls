@@ -13,6 +13,7 @@ to convois-think
     ;; Vérification des convois morts
     ask convois [ check-if-alive ]
 
+    if count convois = 0 [stop]
     let first-car min [who] of convois
 
     ; Calcul du plan AStar pour chaque leader si necessaire
@@ -216,6 +217,8 @@ to check-if-alive
     ;; Envoi d'un message signifiant sa mort aux autres membres du cortege
     i-am-dead intelligent-get-belief "cortege-buddies"
     set dead? true
+    set hidden? true
+    hide-turtle
     die
   ]
 end

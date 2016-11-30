@@ -38,7 +38,7 @@ end
 
 ;; Revoie un Agentset composé de l'ensemble des convois dans le champ de vision
 to-report detect-convois-in-vision
-  let targets convois in-radius-nowrap vision-radius
+  let targets convois with [dead? = false and hidden? = false] in-radius-nowrap vision-radius
   let retour []
   foreach sort-on [distance myself] targets
   [

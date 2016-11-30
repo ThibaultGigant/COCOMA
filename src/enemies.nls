@@ -199,13 +199,22 @@ to detect-convois
   ; Récupération des convois dans le champ de vision
   ; let targets convois in-radius-nowrap enemies-vision-radius
   let targets detect-convois-in-vision
+  show "------"
+  show targets
+  show beliefs
+  
+  if exists-belief-target and intelligent-get-belief "target" = nobody [ remove-beliefs-with-key "target"]
   
   ; Mise à jour des connaissances
   ifelse empty? targets [
     ; Si on connaissait la position d'un convoi à viser, on la supprime et on recommence à chercher
+    
+    remove-beliefs-with-key "target"
+    
     if exists-belief-target
     [
-      remove-belief "target"
+      ;remove-belief "target"
+      
     ]
   ]
   [
@@ -214,6 +223,13 @@ to detect-convois
     
     ;show intentions
   ]
+  
+  ; remove belief ne fonctionne pas par cléf
+  
+  if exists-belief-target and intelligent-get-belief "target" = nobody [ remove-beliefs-with-key "target"]
+  
+  show beliefs
+  show "------------"
 end
 
 ; Decide d'un chemin a suivre si l'ennemi a une cible
@@ -233,14 +249,16 @@ to search-ways-for-enemies
 end
 
 to enemies-think
-  ; Decide d'un chemin a suivre si l'ennemi a une cible
-  search-ways-for-enemies
-  
+  if count convois > 0 [
   ask enemies [
-    execute-intentions
+    detect-convois
     update-intentions
+    execute-intentions
     if show-intentions and empty? intentions [ show intentions ]
     ;    shoot-target
+  ]
+  ; Decide d'un chemin a suivre si l'ennemi a une cible
+  search-ways-for-enemies
   ]
 end
 
@@ -262,22 +280,28 @@ end
 
 ; Rechercher une target, car on n'en a pas encore
 to chercher-target
-  detect-convois
+  ;detect-convois
   random-move-nowrap
 end
 
 ; On a repéré une target et il n'y a pas d'obstacle entre elle et nous, donc on fonce
 to suivre-target
-  detect-convois
+  ;detect-convois
+  if exists-belief-target
+  [
   move-to-target
   shoot-target
+  ]
 end
 
 ; On a repéré une target et il y a un obstacle, on suit astar
 to eviter-obstacle
-  detect-convois
+  if exists-belief-target
+  [
+  ;detect-convois
   move-to-target-astar
   shoot-target
+  ]
 end
 
 ;; Fonctions sur les intentions

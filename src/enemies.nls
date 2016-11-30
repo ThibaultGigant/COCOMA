@@ -199,23 +199,16 @@ to detect-convois
   ; Récupération des convois dans le champ de vision
   ; let targets convois in-radius-nowrap enemies-vision-radius
   let targets detect-convois-in-vision
-  show "------"
-  show targets
-  show beliefs
+  ;show "------"
+  ;show targets
+  ;show beliefs
   
   if exists-belief-target and intelligent-get-belief "target" = nobody [ remove-beliefs-with-key "target"]
   
   ; Mise à jour des connaissances
   ifelse empty? targets [
     ; Si on connaissait la position d'un convoi à viser, on la supprime et on recommence à chercher
-    
     remove-beliefs-with-key "target"
-    
-    if exists-belief-target
-    [
-      ;remove-belief "target"
-      
-    ]
   ]
   [
     ; Mise à jour des connaissances
@@ -228,8 +221,8 @@ to detect-convois
   
   if exists-belief-target and intelligent-get-belief "target" = nobody [ remove-beliefs-with-key "target"]
   
-  show beliefs
-  show "------------"
+  ;show beliefs
+  ;show "------------"
 end
 
 ; Decide d'un chemin a suivre si l'ennemi a une cible
@@ -250,15 +243,14 @@ end
 
 to enemies-think
   if count convois > 0 [
-  ask enemies [
-    detect-convois
-    update-intentions
-    execute-intentions
-    if show-intentions and empty? intentions [ show intentions ]
-    ;    shoot-target
-  ]
-  ; Decide d'un chemin a suivre si l'ennemi a une cible
-  search-ways-for-enemies
+    ask enemies [
+      detect-convois
+      update-intentions
+      execute-intentions
+      if show-intentions and empty? intentions [ show intentions ]
+    ]
+    ; Decide d'un chemin a suivre si l'ennemi a une cible
+    search-ways-for-enemies
   ]
 end
 
@@ -319,17 +311,17 @@ to update-intentions
   [
     if exists-belief-target
     [
-      let obstacle-ahead detect-obstacles-enemy-target
+      let obstacle-ahead false; detect-obstacles-enemy-target
       if not obstacle-ahead and (empty? intentions or current-intention != "suivre-target")
       [
         ;if (not empty? intentions) and current-intention != "suivre-target" [pop-intention]
         set my-path []
-        add-intention "suivre-target" "detect-obstacles-enemy-target"
+        add-intention "suivre-target" "not exists-belief-target and detect-obstacles-enemy-target"
       ]
       if obstacle-ahead and (empty? intentions or current-intention != "eviter-obstacle")
       [
         ;if (not empty? intentions) and current-intention != "eviter-obstacle" [pop-intention]
-        add-intention "eviter-obstacle" "not detect-obstacles-enemy-target"  
+        add-intention "eviter-obstacle" "empty? my-path and not detect-obstacles-enemy-target"  
       ]
     ]
     

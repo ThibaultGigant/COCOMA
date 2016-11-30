@@ -31,9 +31,7 @@ end
 
 ;; Retire un belief depuis sa clé
 to remove-beliefs-with-key [key]
-  foreach beliefs [
-   if first ? = key [
-     set beliefs remove ? beliefs    
-   ] 
+  if exist-beliefs-of-type key [
+    remove-belief intelligent-get-belief key
   ]
 end

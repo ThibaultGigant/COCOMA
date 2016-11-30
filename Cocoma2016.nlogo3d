@@ -298,9 +298,9 @@ to create-mountains
 end
 
 to go
+  enemies-think
   convois-think
   stop-inspecting-dead-agents
-  enemies-think
   drones-think
   tick
   if all? convois [ finished? ] [ stop ] ; Si tout le monde est arrivé, on arrête
@@ -576,7 +576,7 @@ SWITCH
 309
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -589,7 +589,7 @@ simu-speed
 simu-speed
 0
 10
-5
+3
 1
 1
 NIL
@@ -682,7 +682,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+10
 1
 0
 Number
@@ -778,7 +778,7 @@ INPUTBOX
 418
 115
 nb-drones
-2
+0
 1
 0
 Number
@@ -832,7 +832,7 @@ drones-vision-radius
 drones-vision-radius
 0
 100
-24
+50
 1
 1
 NIL
@@ -847,7 +847,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-172
+197
 1
 1
 NIL

@@ -10,13 +10,15 @@ to ancre-I-Mouvement end
 ;; Le drone cherche une zone qui n'a pas été explorée depuis un certain temps
 ;; S'il n'en trouve pas, il bouge aléatoirement
 to explore-drones
-  let center intelligent-get-belief "explorer center"
+  let center intelligent-get-belief "target"
+  ;; Si le drone n'a pas de cible
   if center = nobody
   [
+    ;; Récupération des zones (représentés par leur patch central)
     let liste center-to-explore-drones
     if not empty? liste
     [
-      intelligent-update-belief "explorer center" one-of liste
+      intelligent-update-belief "target" one-of liste
     ]
   ]
   
@@ -41,7 +43,6 @@ to-report center-to-explore-drones
   let liste-patches center-zones-drones
   let liste []
   let center nobody
-  let center-to-explore []
   foreach liste-patches
   [
     set center item (position ? etat-terrain + 1) etat-terrain
@@ -57,21 +58,16 @@ end
 ;; ---
 ;; Le drone se dirige vers la zone, et l'explore
 to go-to-patch-to-explore-drones
-  let center intelligent-get-belief "explorer center"
+  let center intelligent-get-belief "target"
   let etat-terrain intelligent-get-belief "etat terrain"
 ;  if max (list (abs ([pxcor] of center - xcor)) (abs ([pycor] of center - ycor))) > floor (taille-zone-drones / 2)
   let current-center zone-of-path-drones patch-here
   ifelse current-center != center
   [
-    if not distance-min-drones [
-      ; Rotation
-      rotate-agent center
-    ]
-    ; Déplacement
-    fd-drones speed
+    suivi-target-drones
     
-    let pos position current-center etat-terrain
-    intelligent-update-belief "etat terrain" lput ticks (lput current-center remove-item pos (remove-item (pos + 1 ) etat-terrain))
+    ;let pos position current-center etat-terrain
+    ;intelligent-update-belief "etat terrain" lput ticks (lput current-center remove-item pos (remove-item (pos + 1 ) etat-terrain))
   ]
   [
     check-zone-drones
@@ -94,9 +90,9 @@ end
 ;; Renvoie la liste des etats initiaux des zones
 to-report setup-etat-terrain-drones
   let liste []
-  foreach sort patches with [ pxcor - (floor (pxcor / taille-zone-drones)) * taille-zone-drones  = floor (taille-zone-drones / 2) and pycor - (floor (pycor / taille-zone-drones)) * taille-zone-drones = floor (taille-zone-drones / 2) and pzcor = 0]
+  foreach sort patches with [not obstacle? and pxcor - (floor (pxcor / taille-zone-drones)) * taille-zone-drones  = floor (taille-zone-drones / 2) and pycor - (floor (pycor / taille-zone-drones)) * taille-zone-drones = floor (taille-zone-drones / 2) and pzcor = 0]
   [
-    set liste lput ticks lput ? liste
+    set liste lput (- time-to-check-zone-drones) lput ? liste
   ]
   report liste
 end
@@ -105,23 +101,46 @@ end
 ;; ---
 ;; Renvoie la liste des zones (représentés par leurs patchs centrals)
 to-report center-zones-drones
-  report sort patches with [ pxcor - (floor (pxcor / taille-zone-drones)) * taille-zone-drones  = floor (taille-zone-drones / 2) and pycor - (floor (pycor / taille-zone-drones)) * taille-zone-drones = floor (taille-zone-drones / 2) and pzcor = 0]
+  report sort patches with [ not obstacle? and pxcor - (floor (pxcor / taille-zone-drones)) * taille-zone-drones  = floor (taille-zone-drones / 2) and pycor - (floor (pycor / taille-zone-drones)) * taille-zone-drones = floor (taille-zone-drones / 2) and pzcor = 0]
 end
 
 ;; check-zone-drones
 ;; ---
 ;; Vérifie la zone dans laquelle est le drone
 to check-zone-drones
-  let center intelligent-get-belief "explorer center"
-  ;; recherche une autre zone a explorer
-  if true
+  show "Timon"
+  let target intelligent-get-belief "target"
+  let center zone-of-path-drones intelligent-get-belief "target"
+
+  show intelligent-get-belief "explorator-check-counter"
+  
+  ;; Si l'on a atteind le check point
+  ifelse [distance-nowrap myself] of target < 1
   [
-    ;; Mise a jour de l'état du terrain
-    ;; La zone vient d'être explorée
-    let etat-terrain intelligent-get-belief "etat terrain"
-    let pos position center etat-terrain
-    intelligent-update-belief "etat terrain" lput ticks (lput center remove-item pos (remove-item (pos + 1 ) etat-terrain))
     
-    intelligent-update-belief "explorer center" nobody
+    let counter intelligent-get-belief "explorator-check-counter"
+    ;; Si l'on n'a pas encore bien parcouru la zone
+    ;; Le drone se fixe un autre check point
+    ifelse counter < 4
+    [
+      set color random 100
+      let traget one-of patches with [ not obstacle? and zone-of-path-drones myself = center ]
+      intelligent-update-belief "explorator-check-counter" counter + 1
+    ]
+    ;; Sinon, le drone recherche une autre zone a explorer
+    [
+      ;; Mise a jour de l'état du terrain
+      ;; La zone vient d'être explorée
+      let etat-terrain intelligent-get-belief "etat terrain"
+      let pos position center etat-terrain
+      intelligent-update-belief "etat terrain" lput ticks (lput center remove-item pos (remove-item (pos + 1 ) etat-terrain))
+      
+      intelligent-update-belief "explorator-check-counter" 0
+      intelligent-update-belief "target" nobody
+    ]
+  ]
+  ;; Sinon, le drone essaie d'atteindre le check point
+  [
+    suivi-target-drones
   ]
 end

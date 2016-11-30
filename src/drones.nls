@@ -52,10 +52,10 @@ drones-own [
   ;;   • K-Infos-Convois          : Liste des connaissances sur les autres convois
   ;;   Suivi
   ;;   ---
-  ;;   • convoi-suivi             : Convoi que le drone suit et protège
+  ;;   • target                   : Convoi que le drone suit et protège
   ;;   • convoi-already-protected : Liste des convois qui ont une protection suffisante
-  ;;   • drone-protect leader : Leader du groupe de protection
-  ;;   • drone-protect team   : Equipe de protection
+  ;;   • drone-protect leader     : Leader du groupe de protection
+  ;;   • drone-protect team       : Equipe de protection
   ;;   Rapatriement
   ;;   ---
   ;;   • base-patch               : Position de la base
@@ -68,10 +68,12 @@ drones-own [
   ;; • max-dir          : Rotation maximale par tick
   ;; • max-alt          : Altitude de vol maximale
   ;; • min-alt          : Altitude de vol minimale
+  ;; • my-paht          : Chemin que doit suivre le drone
   speed
   max-dir
   max-alt
   min-alt
+  my-path
   
   ;; Carburant
   ;; ---
@@ -120,11 +122,11 @@ to setup-drones
     ;; ---
     ;;   Connaissances
     ;;   ---
-    ;;   • K-Infos-Drones           : Liste des connaissances sur les autres drones
-    ;;   • K-Infos-Convois          : Liste des connaissances sur les autres convois
+    ;;   • K-Infos-Drones            : Liste des connaissances sur les autres drones
+    ;;   • K-Infos-Convois           : Liste des connaissances sur les autres convois
     ;;   Suivi
     ;;   ---
-    ;;    • convoi-suivi             : Convoi que le drone suit et protège
+    ;;    • target                   : Convoi que le drone suit et protège
     ;;    • convoi-already-protected : Liste des convois qui ont une protection suffisante
     ;;    • etat enrollement         : Etape dans la procédure de recrutement
     ;;    • counter enroll.          : Compteur servant au TimeOut pour la procédure de recrutement
@@ -140,6 +142,7 @@ to setup-drones
     set max-dir 10 * simu-speed
     set max-alt max-alt-drones + solAlt
     set min-alt min-alt-drones + solAlt
+    set my-path []
     
     ;; Carburant                             --- Plusieurs modèles de drones avec des caractéristiques pré-définis ?
     set fuel max-fuel-drones
@@ -165,6 +168,7 @@ to setup-drones
     [
       if tmp-nb-explorator > 0
       [
+        intelligent-update-belief "etat terrain" setup-etat-terrain-drones
         add-intention "explore-drones" "explore-drones-done"
         add-intention "take-off-drones" "take-off-drones-done"
         set last-role intention-name get-intention
@@ -178,12 +182,15 @@ to setup-drones-beliefs
   intelligent-update-belief "role" "drone-protect"
   intelligent-update-belief "K-Infos-Drones" []
   intelligent-update-belief "K-Infos-Convois" []
-  intelligent-update-belief "convoi-suivi" nobody
+  intelligent-update-belief "target" nobody
   intelligent-update-belief "convoi-already-protected" []
   intelligent-update-belief "etat enrollement" "cherche convoi"
   intelligent-update-belief "counter enrollement" 0
   intelligent-update-belief "drone-protect leader" nobody
   intelligent-update-belief "drone-protect team" []
+  
+  intelligent-update-belief "old-target" nobody
+  intelligent-update-belief "explorator-check-counter" 0
   
   intelligent-update-belief "base-patch" nobody
   intelligent-update-belief "last-statu" "enBase"
@@ -209,7 +216,7 @@ to soft-reset-drones
     ;; ---
     ;;   Suivi
     ;;   ---
-    ;;    • convoi-suivi         : Convoi que le drone suit et protège
+    ;;    • target               : Convoi que le drone suit et protège
     ;;    • etat enrollement     : Etape dans la procédure de recrutement
     ;;    • counter enroll.      : Compteur servant au TimeOut pour la procédure de recrutement
     ;;    • drone-protect leader : Leader du groupe de protection
@@ -219,7 +226,7 @@ to soft-reset-drones
     ;;    • base-patch           : Position de la base
     ;;    • last-statu           : Statu avant le rapatriement
     set beliefs ([])
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "target" nobody
     intelligent-update-belief "etat enrollement" "cherche convoi"
     intelligent-update-belief "counter enrollement" 0
     intelligent-update-belief "drone-protect leader" nobody
@@ -252,7 +259,11 @@ to soft-reset-drones
   ]
 end
 
-to drones-think  
+to drones-think
+  ;; Les drones cherchent un chemin jusqu'à leur target
+  ;; s'il y a un obstable
+  search-ways-drones
+  
   ask drones with [ not dead? and fuel >= 0 ] [
     ;; Connaissances
     send-knowledges-drones

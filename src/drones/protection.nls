@@ -19,7 +19,7 @@ end
 to cherche-convoi-drones
   suivi-convoi-drones
   
-  if intelligent-get-belief "convoi-suivi" = nobody
+  if intelligent-get-belief "target" = nobody
   [
     random-move-nowrap-drones
   ]
@@ -49,7 +49,7 @@ to-report demande-au-convoi-drones-done
   if intelligent-get-belief "counter enrollement" >= 30
   [
     intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "target" nobody
     add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     report true
   ]
@@ -59,7 +59,7 @@ to-report demande-au-convoi-drones-done
     [ add-intention "demande-envoyee-drones" "demande-envoyee-drones-done" ]
     [
       intelligent-update-belief "etat enrollement" "cherche convoi"
-      intelligent-update-belief "convoi-suivi" nobody
+      intelligent-update-belief "target" nobody
       add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     ]
     report true
@@ -80,7 +80,7 @@ to-report demande-envoyee-drones-done
   if intelligent-get-belief "counter enrollement" >= 30
   [
     intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "target" nobody
     add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     report true
   ]
@@ -99,8 +99,8 @@ to-report demande-envoyee-drones-done
     ]
     
     intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "convoi-suivi" intelligent-get-belief "convoi-already-protected"
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "target" intelligent-get-belief "convoi-already-protected"
+    intelligent-update-belief "target" nobody
     add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
   
     report true
@@ -121,7 +121,7 @@ to-report demande-au-leader-drones-done
   if intelligent-get-belief "counter enrollement" >= 30
   [
     intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "target" nobody
     add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     report true
   ]
@@ -134,7 +134,7 @@ to-report demande-au-leader-drones-done
     ]
     [
       intelligent-update-belief "etat enrollement" "cherche convoi"
-      intelligent-update-belief "convoi-suivi" nobody
+      intelligent-update-belief "target" nobody
       add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     ]
     report true
@@ -155,7 +155,7 @@ to-report demande-envoyee-au-leader-done
   if intelligent-get-belief "counter enrollement" >= 30
   [
     intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "target" nobody
     add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     report true
   ]
@@ -166,8 +166,8 @@ to-report demande-envoyee-au-leader-done
     [ add-intention "protect-convoi" "protect-convoi-done" ]
     [
       intelligent-update-belief "etat enrollement" "cherche convoi"
-      intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "convoi-suivi" intelligent-get-belief "convoi-already-protected"
-      intelligent-update-belief "convoi-suivi" nobody
+      intelligent-update-belief "convoi-already-protected" lput intelligent-get-belief "target" intelligent-get-belief "convoi-already-protected"
+      intelligent-update-belief "target" nobody
       add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
     ]
     
@@ -215,10 +215,10 @@ to search-convoi-drones
   ]
   
   ifelse count targets = 0 [
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-update-belief "target" nobody
   ]
   [
-    intelligent-update-belief "convoi-suivi" first sort-on [distance-nowrap myself] targets
+    intelligent-update-belief "target" first sort-on [distance-nowrap myself] targets
   ]
 end
 
@@ -226,15 +226,9 @@ end
 ;; ---
 ;; Le drone suit le convoi qu'il souhaite protéger
 to suivi-convoi-drones
-  if intelligent-get-belief "convoi-suivi" = nobody [
+  if intelligent-get-belief "target" = nobody [
     search-convoi-drones
   ]
-  if intelligent-get-belief "convoi-suivi" != nobody [
-    if not distance-min-drones [
-      ; Rotation
-      rotate-agent intelligent-get-belief "convoi-suivi"
-    ]
-    ; Déplacement
-    if distance-nowrap intelligent-get-belief "convoi-suivi" > drones-suivi-radius [ fd-drones speed ]
-  ]
+  
+  suivi-target-drones
 end

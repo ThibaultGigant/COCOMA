@@ -91,7 +91,9 @@ to-report get-receivers-drones [to-communicate]
       if not empty? team
       [ set team remove-item 0 team ]
       
-      report sort (sentence other-leaders team intelligent-get-belief "convoi-suivi")
+      ifelse intelligent-get-belief "target" != nobody and not member? intelligent-get-belief "target" patches
+      [ report sort (sentence other-leaders team intelligent-get-belief "target") ]
+      [ report sort (sentence other-leaders team) ]
     ]
     
     if intelligent-get-belief "drone-protect leader" != nobody

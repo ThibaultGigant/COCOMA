@@ -10,8 +10,9 @@ to send-knowledges-drones
   
   if (last-role         != intention-name get-intention or
       last-isAttacked   != isAttacked or
-      last-stat-of-fuel != floor (fuel / fuel-estimate) or
-      K-drones-updated)
+      last-stat-of-fuel != floor (fuel / max (list fuel-estimate 50)) or
+      K-drones-updated or
+      K-convois-updated)
   [ set-drones-receivers ]
   
   ;; Récuperation des drones à qui envoyer le message
@@ -31,23 +32,41 @@ to send-knowledges-drones
   
   if empty? receivers [ stop ]
   
-  let content create-knowledges-drones
+  
+  ;; Connaissances à propos des drones
+  let content create-knowledges-Infos-Drones-drones
   if content != nobody
   [
     let msg create-complete-msg receivers "knowledge" content
     send msg
   ]
+
+  ;; Connaissances à propos des convois
+  set content create-knowledges-Infos-Convois-drones
+  if content != nobody
+  [
+    let msg create-complete-msg receivers "knowledge" content
+    send msg
+  ]
+  
+  ;; Connaissances à propos des attaquant
+;  set content create-knowledges-Infos-Enemies-drones
+;  if content != nobody
+;  [
+;    let msg create-complete-msg receivers "knowledge" content
+;    send msg
+;  ]
 end
 
-;; create-knowledges-drones
+;; create-knowledges-Infos-Drones-drones
 ;; ---
 ;; Regroupement des connaissances
 ;; Ne crée un nouveau knowledge que s'il y a eu une modification concernant :
 ;; • Le rôle du drone
 ;; • La présence d'attaque ennemi
 ;; • L'état du carburant restant
-;; • Une information sur un autre drone --- TODO le faire aussi pour une modif de convoi
-to-report create-knowledges-drones
+;; • Une information sur un autre drone
+to-report create-knowledges-Infos-Drones-drones
   
   let stat-of-fuel floor (fuel / fuel-estimate)
   
@@ -64,7 +83,57 @@ to-report create-knowledges-drones
     set last-isAttacked isAttacked
     set last-stat-of-fuel stat-of-fuel
     
-    report (list "K-Infos-Drones" content "K-Infos-Convois" content-convoi)
+    set K-drones-updated false
+    
+    report (list "K-Infos-Drones" content)
+  ]
+  
+  report nobody
+end
+
+;; create-knowledges-Infos-Convois-drones
+;; ---
+;; Regroupement des connaissances
+;; Ne crée un nouveau knowledge que s'il y a eu une modification concernant :
+;; • Le rôle du drone
+;; • La présence d'attaque ennemi
+;; • L'état du carburant restant
+;; • Une information sur un autre convois
+to-report create-knowledges-Infos-Convois-drones
+  let me turtle who
+  let liste-convois []
+  if ticks mod 10 = 0
+  [
+    let infos-convois intelligent-get-belief "K-Infos-Convois"
+    let info-convoi []
+    foreach sort convois with [distance me <= drones-vision-radius and myself != [intelligent-get-belief "target"] of me]
+    [
+      set info-convoi K-get-Info-Convoi ?
+      if not empty? info-convoi and K-get "tick" info-convoi + 20 > ticks
+      [
+        set liste-convois lput ? liste-convois
+        
+        ifelse member? info-convoi infos-convois
+        [
+          let pos position info-convoi infos-convois
+          intelligent-update-belief "K-Infos-Convois" lput ? remove-item pos infos-convois
+        ]
+        [
+          intelligent-update-belief "K-Infos-Convois" lput ? infos-convois
+        ]
+        set K-convois-updated true
+      ]
+    ]
+  ]
+  
+  if (not empty? liste-convois or
+      true or
+      true or
+      K-convois-updated)
+  [
+    set K-convois-updated false
+    
+    report (list "K-Infos-Convois" intelligent-get-belief "K-Infos-Convois")
   ]
   
   report nobody
@@ -91,7 +160,9 @@ to-report get-receivers-drones [to-communicate]
       if not empty? team
       [ set team remove-item 0 team ]
       
-      report sort (sentence other-leaders team intelligent-get-belief "convoi-suivi")
+      ifelse intelligent-get-belief "target" != nobody and not member? intelligent-get-belief "target" patches
+      [ report sort (sentence other-leaders team intelligent-get-belief "target") ]
+      [ report sort (sentence other-leaders team) ]
     ]
     
     if intelligent-get-belief "drone-protect leader" != nobody
@@ -114,5 +185,4 @@ end
 ;; Ajoute à la liste des receivers les agents qui devronts recevoir les updates
 to set-drones-receivers
   intelligent-update-belief "K-drones-receivers" get-receivers-drones false
-  set K-drones-updated false
 end

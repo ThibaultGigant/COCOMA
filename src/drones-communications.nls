@@ -11,7 +11,7 @@
 to enrollement
   let etat intelligent-get-belief "etat enrollement"
   let counter intelligent-get-belief "counter enrollement"
-;  let convoi-suivi intelligent-get-belief "convoi-suivi"
+;  let convoi-suivi intelligent-get-belief "target"
 
   ;; Le drone recherche un convoi
   if etat = "cherche convoi" [
@@ -51,7 +51,7 @@ to-report can-communicate-with-convoi [target]
 end
 
 to enrollement-cherche-convoi
-  let convoi-suivi intelligent-get-belief "convoi-suivi"
+  let convoi-suivi intelligent-get-belief "target"
   
   if convoi-suivi != nobody [
     intelligent-update-belief "etat enrollement" "demande au convoi"
@@ -63,7 +63,7 @@ to enrollement-cherche-convoi
 end
 
 to enrollement-demande-au-convoi
-  let convoi-suivi intelligent-get-belief "convoi-suivi"
+  let convoi-suivi intelligent-get-belief "target"
   
   if can-communicate-with-convoi convoi-suivi [
     ;; Envoi du message
@@ -87,14 +87,14 @@ to enrollement-demande-envoyee
       intelligent-update-belief "drone-protect team" (list self)
       intelligent-update-belief "counter enrollement" 0
       
-      set color [color] of intelligent-get-belief "convoi-suivi"
+      set color [color] of intelligent-get-belief "target"
       stop
     ]
   if check-message msg "drone-protect" "Refuse"
     [
       intelligent-update-belief "etat enrollement" "cherche convoi"
-      intelligent-lput-belief "convoi-already-protected" intelligent-get-belief "convoi-suivi"
-      intelligent-update-belief "convoi-suivi" nobody
+      intelligent-lput-belief "convoi-already-protected" intelligent-get-belief "target"
+      intelligent-update-belief "target" nobody
       intelligent-update-belief "counter enrollement" 0
       show "Refusé"
       stop
@@ -143,8 +143,8 @@ to enrollement-demande-envoyee-au-leader
   [
     intelligent-update-belief "drone-protect leader" nobody
     intelligent-update-belief "etat enrollement" "cherche convoi"
-    intelligent-lput-belief "convoi-already-protected" intelligent-get-belief "convoi-suivi"
-    intelligent-update-belief "convoi-suivi" nobody
+    intelligent-lput-belief "convoi-already-protected" intelligent-get-belief "target"
+    intelligent-update-belief "target" nobody
     intelligent-update-belief "counter enrollement" 0
     show "Refusé"
     stop

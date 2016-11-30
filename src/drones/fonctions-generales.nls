@@ -68,6 +68,7 @@ to check-fuel-drones
   ;; Le patch de la base la plus proche
   let tmp first sort-on [distance-nowrap myself] patches with [ base? ]
   
+  
   ;; Estimation du carburant nécesasire pour rentrer à la base
   ;; • pourcentage-securite-fuel-drones       : Donne une marge de sécurité
   ;; ---
@@ -89,9 +90,12 @@ to check-fuel-drones
   ;; Vérification du carburant restant
   if fuel < fuel-estimate [
     ;; Le drone garde en mémoire la place de la base la plus proche
+    intelligent-update-belief "old-target" intelligent-get-belief "target"
+    intelligent-update-belief "target" tmp
     intelligent-update-belief "base-patch" tmp
     
     ;; Fin du comportement principal, le drone doit se ravitailler
+    set my-path []
     let this-intention get-intention
     add-intention "take-off-drones" "take-off-drones-done"
     add-intention "reload-drones" "reload-drones-done"
@@ -161,11 +165,11 @@ end
 
 ;; Mouvements
 ;; ---
-;; • fd-drones    : Fait avancer les drones, prend en compte le nowrap et les limites de map.
-;;                  Prise en compte du carburant consommé
-;; • rotate-drone : Tourne la tête du drone vers l'endroit indiqué, avec une vitesse limité.
-;;                  Prise en compte du carburant consommé
-
+;; • fd-drones       : Fait avancer les drones, prend en compte le nowrap et les limites de map.
+;;                     Prise en compte du carburant consommé
+;; • rotate-drone    : Tourne la tête du drone vers l'endroit indiqué, avec une vitesse limité.
+;;                     Prise en compte du carburant consommé
+;; • sinusoid-traget : Donne au drone un mouvement sinusoïdale
 
 ;; Fait avancer les drones, prend en compte le nowrap et les limites de map.
 ;; Prise en compte du carburant consommé
@@ -177,18 +181,20 @@ to fd-drones [ sp ]
     
     fuel-consomme "fd" sp
   ]
-  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
-      fd sp / 5
+;  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
+;      fd sp / 5
+  [ ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
+      fd sp
       
-      fuel-consomme "fd" (sp / 5)
+      fuel-consomme "fd" sp
     ]
     [
-      ifelse heading >= 180 [ rt 10 ]
-      [ lt 10 ]
+      ifelse heading >= 180 [ rt 20 ]
+      [ lt 20 ]
       
       ;; Carburant consommé (un rotation vaut trois fois moins qu'un déplacement)
       
-      fuel-consomme "rotation" 10
+      fuel-consomme "rotation" 20
     ]
   ]
 end
@@ -237,4 +243,110 @@ to random-move-nowrap-drones
 ;    fuel-consomme "rotation" turn
   ]
   fd-drones speed
+end
+
+;; suivi-target-drones
+;; ---
+;; Le drone suit le convoi qu'il souhaite protéger
+to suivi-target-drones
+  if intelligent-get-belief "target" != nobody [
+    ;; S'il y a un chemin a suivre
+    if not empty? my-path
+    [
+      ;; Récupération du patch ciblé
+      let target-patch intelligent-get-belief "target"
+      ;; Si target est un agent, on récupère un patch
+      if member? target-patch turtles
+      [
+        let zcor-tmp zcor
+        set target-patch [patch xcor ycor zcor-tmp] of target-patch
+      ]
+      
+      ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
+      ifelse detect-obstacle-between-target-no-angle target-patch
+      [
+        move-to-target-astar-drones
+        stop
+      ]
+      [
+        set my-path []
+      ]
+    ]
+    
+    if not distance-min-drones [
+      ; Rotation
+      rotate-agent intelligent-get-belief "target"
+    ]
+    ; Déplacement
+    if distance-nowrap intelligent-get-belief "target" > drones-suivi-radius [ fd-drones speed ]
+  ]
+end
+
+;; sinusoid-traget
+;; ---
+;; Donne au drone un mouvement sinusoïdale
+;; • a      : Le point de départ du centre de la sinusoïde
+;; • b      : Le point de fin du centre de la sinusoïde
+;; • taille : Taille du mouvement
+to sinusoid-traget [a b taille]
+;  let dist a-b 0
+;  ifelse dist > 0.8 * taille
+;  [
+;    set heading heading - 110
+;  ]
+;  [
+;    if dist > 0
+;  ]
+;  
+;  let delta-angle acos (dist / taille)
+end
+
+;; search-ways-drones
+;; ---
+;; Decide d'un chemin a suivre si le drone a une cible
+to search-ways-drones
+  ; Pour chaque drone avec une cible et qui n'est pas mort, on choisit un chemin
+  foreach sort-on [who] turtle-set drones with [not dead? and intelligent-get-belief "target" != nobody and empty? my-path] [
+    ;; Récupération du patch ciblé
+    let target-patch [intelligent-get-belief "target"] of ?
+    ;; Si target est un agent, on récupère un patch
+    if member? target-patch turtles
+    [
+      let zcor-tmp [zcor] of ?
+      set target-patch [patch xcor ycor zcor-tmp] of target-patch
+    ]
+    
+    ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
+    if [detect-obstacle-between-target-no-angle target-patch] of ?
+    [
+      ;; Calcul du A-Star
+      ;let path (plan-astar ([patch xcor ycor zcor] of ?) target-patch false)
+      let path (plan-astar ([patch-here] of ?) target-patch false)
+      ask ? [ set my-path path ]
+    ]
+  ]
+end
+
+; Mouvement le long d'un chemin astar calculé précédemment
+to move-to-target-astar-drones
+  ; Vérification qu'on a bien un chemin astar en mémoire
+  if not empty? my-path
+  [
+    let zcor-tmp zcor
+    let next-patch [patch pxcor pycor zcor-tmp] of first my-path
+    ; Deplacement vers le prochain patch
+    if [distance myself] of next-patch >= speed
+    [
+      ; Rotation & Déplacement
+      rotate-agent next-patch
+      fd-drones speed
+    ]
+    ;; Si on a atteint ce patch, on le supprime de la liste, et on va donc continuer vers le prochain patch du chemin
+    ;; On en supprime deux, pour eviter les déplacements en escalier dans une diagonale
+    if [distance myself] of next-patch < speed
+    [
+      set my-path remove-item 0 my-path
+      if debug [ show (word "Waypoint atteint: " patch-here ", prochain: " next-patch ) ]
+    ]
+  ]
 end

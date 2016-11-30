@@ -52,6 +52,7 @@ to-report take-off-drones-done
   [
 ;    set roll 0
 ;    set pitch 0
+    intelligent-update-belief "target" intelligent-get-belief "old-target"
     report true
   ]
   report false
@@ -62,7 +63,27 @@ end
 ;; Le drone retourne à la base pour se ravitailler
 to ravitaillement-drones
   if not at-base-drones [
-    let base-patch intelligent-get-belief "base-patch"
+    if not empty? my-path
+    [
+      ;; Récupération du patch ciblé
+      let target-patch intelligent-get-belief "target"
+      ;; Si target est un agent, on récupère un patch
+      if member? target-patch turtles
+      [
+        let zcor-tmp zcor
+        set target-patch [patch xcor ycor zcor-tmp] of target-patch
+      ]
+      
+      ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
+      if detect-obstacle-between-target-no-angle target-patch
+      [
+        move-to-target-astar-drones
+        stop
+      ]
+      set my-path []
+    ]
+        
+    let base-patch intelligent-get-belief "target"
     rotate-agent base-patch
     
     fd-drones min (list speed ( distance-nowrap-noZAxis self base-patch))

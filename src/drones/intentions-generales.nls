@@ -75,7 +75,7 @@ to ravitaillement-drones
       ]
       
       ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
-      if detect-obstacle-between-target target-patch
+      if detect-obstacle-between-target-no-angle target-patch
       [
         move-to-target-astar-drones
         stop

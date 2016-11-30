@@ -108,23 +108,20 @@ end
 ;; ---
 ;; Vérifie la zone dans laquelle est le drone
 to check-zone-drones
-  show "Timon"
   let target intelligent-get-belief "target"
   let center zone-of-path-drones intelligent-get-belief "target"
-
-  show intelligent-get-belief "explorator-check-counter"
   
   ;; Si l'on a atteind le check point
-  ifelse [distance-nowrap myself] of target < 1
+  ifelse [distance-nowrap [patch xcor ycor 0] of myself] of target < 1
   [
-    
     let counter intelligent-get-belief "explorator-check-counter"
     ;; Si l'on n'a pas encore bien parcouru la zone
     ;; Le drone se fixe un autre check point
     ifelse counter < 4
     [
       set color random 100
-      let traget one-of patches with [ not obstacle? and zone-of-path-drones myself = center ]
+      let zcor-tmp zcor
+      let traget one-of patches with [ not obstacle? and zone-of-path-drones patch pxcor pycor pzcor = center and pzcor = floor zcor-tmp ]
       intelligent-update-belief "explorator-check-counter" counter + 1
     ]
     ;; Sinon, le drone recherche une autre zone a explorer

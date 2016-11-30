@@ -230,5 +230,19 @@ to suivi-convoi-drones
     search-convoi-drones
   ]
   
+  ;; Si le convoi n'est pas visible, on suit la dernière position connue
+  let convoi-suivi intelligent-get-belief "target"
+  if [distance myself] of convoi-suivi > drones-vision-radius
+  [
+    let last-seen K-get-Info-Convoi convoi-suivi
+    ifelse last-seen != nobody
+    [
+      intelligent-update-belief "target" K-get "position" last-seen
+    ]
+    [
+      intelligent-update-belief "target" nobody
+    ]
+  ]
+  
   suivi-target-drones
 end

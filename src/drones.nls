@@ -39,6 +39,7 @@ drones-own [
   incoming-queue
   
   K-drones-updated
+  K-convois-updated
   last-role
   last-isAttacked
   last-stat-of-fuel
@@ -116,6 +117,7 @@ to setup-drones
     set incoming-queue []
     
     set K-drones-updated false
+    set K-convois-updated false
     set last-isAttacked false
     
     ;; Beliefs
@@ -262,7 +264,7 @@ end
 to drones-think
   ;; Les drones cherchent un chemin jusqu'à leur target
   ;; s'il y a un obstable
-  search-ways-drones
+  ;search-ways-drones
   
   ask drones with [ not dead? and fuel >= 0 ] [
     ;; Connaissances

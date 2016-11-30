@@ -181,18 +181,20 @@ to fd-drones [ sp ]
     
     fuel-consomme "fd" sp
   ]
-  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
-      fd sp / 5
+;  [ ifelse [distance-nowrap myself] of patch-ahead sp / 5 < sp / 5 + 5 [
+;      fd sp / 5
+  [ ifelse [distance-nowrap myself] of patch-ahead sp < sp + 5 [
+      fd sp
       
-      fuel-consomme "fd" (sp / 5)
+      fuel-consomme "fd" sp
     ]
     [
-      ifelse heading >= 180 [ rt 10 ]
-      [ lt 10 ]
+      ifelse heading >= 180 [ rt 20 ]
+      [ lt 20 ]
       
       ;; Carburant consommé (un rotation vaut trois fois moins qu'un déplacement)
       
-      fuel-consomme "rotation" 10
+      fuel-consomme "rotation" 20
     ]
   ]
 end
@@ -261,12 +263,14 @@ to suivi-target-drones
       ]
       
       ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
-      if detect-obstacle-between-target target-patch
+      ifelse detect-obstacle-between-target-no-angle target-patch
       [
         move-to-target-astar-drones
         stop
       ]
-      set my-path []
+      [
+        set my-path []
+      ]
     ]
     
     if not distance-min-drones [
@@ -313,10 +317,11 @@ to search-ways-drones
     ]
     
     ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
-    if [detect-obstacle-between-target target-patch] of ?
+    if [detect-obstacle-between-target-no-angle target-patch] of ?
     [
       ;; Calcul du A-Star
-      let path (plan-astar ([patch xcor ycor zcor] of ?) target-patch false)
+      ;let path (plan-astar ([patch xcor ycor zcor] of ?) target-patch false)
+      let path (plan-astar ([patch-here] of ?) target-patch false)
       ask ? [ set my-path path ]
     ]
   ]
@@ -336,7 +341,8 @@ to move-to-target-astar-drones
       rotate-agent next-patch
       fd-drones speed
     ]
-    ; Si on a atteint ce patch, on le supprime de la liste, et on va donc continuer vers le prochain patch du chemin
+    ;; Si on a atteint ce patch, on le supprime de la liste, et on va donc continuer vers le prochain patch du chemin
+    ;; On en supprime deux, pour eviter les déplacements en escalier dans une diagonale
     if [distance myself] of next-patch < speed
     [
       set my-path remove-item 0 my-path

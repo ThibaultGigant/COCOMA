@@ -588,7 +588,7 @@ simu-speed
 simu-speed
 0
 10
-4
+1
 1
 1
 NIL
@@ -777,7 +777,7 @@ INPUTBOX
 418
 115
 nb-drones
-5
+2
 1
 0
 Number
@@ -831,7 +831,7 @@ drones-vision-radius
 drones-vision-radius
 0
 100
-50
+24
 1
 1
 NIL
@@ -846,7 +846,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-92
+172
 1
 1
 NIL
@@ -1194,7 +1194,7 @@ time-to-check-zone-drones
 time-to-check-zone-drones
 20
 10000
-2000
+791
 1
 1
 NIL
@@ -1244,7 +1244,7 @@ nb-explorator
 nb-explorator
 0
 nb-drones
-5
+2
 1
 1
 NIL

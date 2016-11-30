@@ -90,6 +90,23 @@ to-report detect-obstacle-between-target [target]
   report false
 end
 
+to-report detect-obstacle-between-target-no-angle [target]
+; Vérification qu'on ne va pas dans le vide
+  if abs (xcor - [pxcor] of patch-ahead speed) > speed + safe-distance or abs (ycor - [pycor] of patch-ahead speed) > speed + safe-distance
+  [ report true ]
+  
+  let temp speed
+
+  while [ temp <= distance target ]
+  [
+    if [obstacle?] of patch-at-heading-and-distance heading temp [ report true ]
+    set temp temp + 1
+  ]
+
+  ; Si on arrive là c'est qu'on n'avait pas de 
+  report false
+end
+
 ;;;;;;;;;;;;;;;;;;;;
 ;; Communications ;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -155,59 +172,103 @@ to update-knowledges-drones [new-knowledges]
     ;; Récupération des connaissances
     let content get-content new-knowledges
     
-    ;; Récupération de la liste des croyances sur les drones
-    let Infos-Drones K-get "K-Infos-Drones" content
-    
-    let tick-of-K 0
-    
-    ;; Pour chaque drone
-    foreach Infos-Drones
+    ifelse member? "K-Infos-Drones" get-content new-knowledges
     [
-      let turt K-get "turtle" ?
-      set tick-of-K K-get "tick" ?
-      
-      ;; On ne traite que les drones autres que nous même
-      if turt != self [
-        
-        ;; Récupération de nos croyance concernant ce drone
-        let current-info-drone K-get-Info-Drone turt
-        
-        let K-Infos-Drones intelligent-get-belief "K-Infos-Drones"
-        
-        ifelse current-info-drone = [] 
-        [
-          intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones
-        ]
-        [
-          if tick-of-K > K-get "tick" current-info-drone
-          [
-            let pos position current-info-drone K-Infos-Drones
-            intelligent-update-belief "K-Infos-Drones" lput ? remove-item pos K-Infos-Drones
-            set K-drones-updated true
-          ]
-        ]
-      ]
+      update-Infos-Drones content
     ]
-    
-    ;; Récupération de la liste des croyances sur les convois
-    let Infos-Convois K-get "K-Infos-Convois" content
-    
-    ;; Pour chaque convoi
-    foreach Infos-Convois
     [
-      ;; Récupération de nos croyance concernant ce drone
-      let current-info-convoi K-get-Info-Convoi K-get "turtle" ?
-      
-      ;; Vérification de la date des croyances
-      set tick-of-K K-get "tick" ?
-      if tick-of-K > K-get "tick" current-info-convoi
+      ifelse member? "K-Infos-Convois" get-content new-knowledges
       [
-        ;; Update
+        update-Infos-Convois content
+      ]
+      [
+        if member? "K-Infos-Enemies" get-content new-knowledges
+        [
+          update-Infos-Enemies content
+        ]
       ]
     ]
   ]
 end
 
+
+to update-Infos-Drones [content]
+  ;; Récupération de la liste des croyances sur les drones
+  let Infos-Drones K-get "K-Infos-Drones" content
+  
+  let tick-of-K 0
+  
+  ;; Pour chaque drone
+  foreach Infos-Drones
+  [
+    let turt K-get "turtle" ?
+    set tick-of-K K-get "tick" ?
+    
+    ;; On ne traite que les drones autres que nous même
+    if turt != self [
+      
+      ;; Récupération de nos croyance concernant ce drone
+      let current-info-drone K-get-Info-Drone turt
+      
+      let K-Infos-Drones intelligent-get-belief "K-Infos-Drones"
+      
+      ifelse current-info-drone = [] 
+      [
+        show "here"
+        intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones
+      ]
+      [
+        if tick-of-K > K-get "tick" current-info-drone
+        [
+          let pos position current-info-drone K-Infos-Drones
+          intelligent-update-belief "K-Infos-Drones" lput ? remove-item pos K-Infos-Drones
+          set K-drones-updated true
+        ]
+      ]
+    ]
+  ]
+end
+
+
+to update-Infos-Convois [content]
+  ;; Récupération de la liste des croyances sur les drones
+  let Infos-Convois K-get "K-Infos-Convois" content
+  
+  let tick-of-K 0
+  
+  ;; Pour chaque drone
+  foreach Infos-Convois
+  [
+    let turt K-get "turtle" ?
+    set tick-of-K K-get "tick" ?
+    
+    ;; On ne traite que les drones autres que nous même
+    if turt != self [
+      
+      ;; Récupération de nos croyance concernant ce drone
+      let current-info-convoi K-get-Info-Convoi turt
+      
+      let K-Infos-Convois intelligent-get-belief "K-Infos-Convois"
+      
+      ifelse current-info-convoi = [] 
+      [
+        intelligent-update-belief "K-Infos-Convois" lput ? K-Infos-Convois
+      ]
+      [
+        if tick-of-K > K-get "tick" current-info-convoi
+        [
+          let pos position current-info-convoi K-Infos-Convois
+          intelligent-update-belief "K-Infos-Convois" lput ? remove-item pos K-Infos-Convois
+          set K-convois-updated true
+        ]
+      ]
+    ]
+  ]
+end
+
+
+to update-Infos-Enemies [content]
+end
 
 ;; Retourne le champs voulu dans Info-Drones et Info-Convois
 to-report K-get [field K]

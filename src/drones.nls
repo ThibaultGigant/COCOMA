@@ -262,6 +262,7 @@ to soft-reset-drones
   ]
 end
 
+;; TODO traiter les messages "Death notification"
 to drones-think
   ;; Les drones cherchent un chemin jusqu'à leur target
   ;; s'il y a un obstable
@@ -300,5 +301,20 @@ to drones-think
     ifelse solAlt > 0.2
     [ set zcor zcor - 0.2 ]
     [ set zcor 0 ]
+  ]
+end
+
+;; msg-to-trash-drones
+;; ---
+;; Efface tous les messages qui ne sont pas interessants
+to msg-to-trash-drones
+  if statu = "explorer"
+  [
+    while [ remove-msg-if-performative (list "drone-protect") ] []
+  ]
+  
+  if statu = "protect-convoi"
+  [
+    
   ]
 end

@@ -100,36 +100,35 @@ end
 ;; • L'état du carburant restant
 ;; • Une information sur un autre convois
 to-report create-knowledges-Infos-Convois-drones
-  let me turtle who
-  let liste-convois []
+  let me self ;turtle who
+  let flag false ;; Vrai si une modification à été effectuée dans le foreach
   if ticks mod 10 = 0
   [
     let infos-convois intelligent-get-belief "K-Infos-Convois"
     let info-convoi []
+    ;; Mise à jour des convois dans le champs de vision
     foreach sort convois with [distance me <= drones-vision-radius and myself != [intelligent-get-belief "target"] of me]
     [
       set info-convoi K-get-Info-Convoi ?
       if not empty? info-convoi and K-get "tick" info-convoi + 20 > ticks
       [
-        set liste-convois lput ? liste-convois
+        set flag true
         
-        ifelse member? info-convoi infos-convois
-        [
-          let pos position info-convoi infos-convois
-          intelligent-update-belief "K-Infos-Convois" lput ? remove-item pos infos-convois
-        ]
-        [
-          intelligent-update-belief "K-Infos-Convois" lput ? infos-convois
-        ]
+        let pos position info-convoi infos-convois
+        let new-info-convoi (list "tick" ticks "turtle" ? "position" [patch-here] of ? "role" K-get "role" info-convoi "dead" K-get "dead" info-convoi "pv" K-get "pv" info-convoi)
+        intelligent-update-belief "K-Infos-Convois" lput new-info-convoi remove-item pos infos-convois
+        set K-convois-updated true
+      ]
+      if empty? info-convoi
+      [
+        let new-info-convoi (list "tick" ticks "turtle" ? "position" [patch-here] of ? "role" nobody "dead" nobody "pv" nobody)
+        intelligent-update-belief "K-Infos-Convois" lput new-info-convoi infos-convois
         set K-convois-updated true
       ]
     ]
   ]
   
-  if (not empty? liste-convois or
-      true or
-      true or
-      K-convois-updated)
+  if (flag or K-convois-updated)
   [
     set K-convois-updated false
     
@@ -148,10 +147,11 @@ end
 ;; • drone-protect
 ;; • • leader                  : Envoie à toute son équipe, aux autres drones leader, et au convoi leader
 ;; • • Sinon                   : Envoie à son leader s'il en a un, sinon ??? TODO
+;; • explorer                : Envoie aux drones explorateurs, et aux drones leaders protecteurs
 to-report get-receivers-drones [to-communicate]
   let role intelligent-get-belief "role"
   
-  if role = "drone-protect"
+  if statu = "protect-convoi"
   [
     if leader?
     [
@@ -177,6 +177,11 @@ to-report get-receivers-drones [to-communicate]
     ]
     
     report sort other drones with [ can-communicate-with-convoi self ]
+  ]
+  if statu = "explorer"
+  [
+    ;; Renvoie les drones explorateurs, et les drones leaders protecteurs
+    report sort other drones with [ (not to-communicate or can-communicate-with-convoi self) and statu = "explorer" or (statu = "protect-convoi" and leader?) ]
   ]
 end
 

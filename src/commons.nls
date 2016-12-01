@@ -137,11 +137,29 @@ to-report create-complete-reply [msg performative content]
   report reply
 end
 
+;; get-msg-if-performative
+;; ---
 ;; Récupère le message seulement si la performative est ce qu'on attend
+;; • performative  : la performative souhaitée
 to-report get-msg-if-performative [performative]
   let msg get-message-no-remove
   if get-performative msg = performative [ report get-message ]
   report nobody
+end
+
+;; remove-msg-if-performative
+;; ---
+;; Suprime le message seulement si la performative correspond à l'une des performatives données
+;; • performatives : La liste des performatives des messages que l'on souhaite supprimer
+;; • report        : Renvoie vrai si le message à été supprimée
+to-report remove-msg-if-performative [performatives]
+  let msg get-message-no-remove
+  if member? get-performative msg performatives
+  [
+    remove-msg
+    report true
+  ]
+  report false
 end
 
 ;; Envoie un message aux agents de la liste signifiant que l'emetteur est mort tristement
@@ -293,6 +311,8 @@ to-report K-get-Info-Drone  [drone]
 end
 
 to-report K-get-Info-Convoi [convoi]
+  ;show convoi
+  ;show intelligent-get-belief "K-Infos-Convois"
   let li filter [member? convoi ?] intelligent-get-belief "K-Infos-Convois"
   ifelse empty? li
   [ report li ]

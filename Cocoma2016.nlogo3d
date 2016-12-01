@@ -589,7 +589,7 @@ simu-speed
 simu-speed
 0
 10
-3
+1
 1
 1
 NIL
@@ -682,7 +682,7 @@ INPUTBOX
 348
 115
 nb-enemies
-10
+3
 1
 0
 Number
@@ -778,7 +778,7 @@ INPUTBOX
 418
 115
 nb-drones
-0
+3
 1
 0
 Number
@@ -1245,7 +1245,7 @@ nb-explorator
 nb-explorator
 0
 nb-drones
-2
+1
 1
 1
 NIL
@@ -1258,7 +1258,7 @@ SLIDER
 458
 nb-protector
 nb-protector
-0
+nb-drones - nb-explorator
 nb-drones - nb-explorator
 0
 1
@@ -1609,7 +1609,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

@@ -58,7 +58,7 @@ end
 ;; ---
 ;; Le drone se dirige vers la zone, et l'explore
 to go-to-patch-to-explore-drones
-  let center intelligent-get-belief "target"
+  let center zone-of-path-drones intelligent-get-belief "target"
   let etat-terrain intelligent-get-belief "etat terrain"
 ;  if max (list (abs ([pxcor] of center - xcor)) (abs ([pycor] of center - ycor))) > floor (taille-zone-drones / 2)
   let current-center zone-of-path-drones patch-here
@@ -112,7 +112,9 @@ to check-zone-drones
   let center zone-of-path-drones intelligent-get-belief "target"
   
   ;; Si l'on a atteind le check point
-  ifelse [distance-nowrap [patch xcor ycor 0] of myself] of target < 1
+  let zcor-tmp [pzcor] of target
+  let tmp patch xcor ycor zcor-tmp
+  ifelse [distance-nowrap [patch xcor ycor zcor-tmp] of myself] of target < 1
   [
     let counter intelligent-get-belief "explorator-check-counter"
     ;; Si l'on n'a pas encore bien parcouru la zone
@@ -120,9 +122,11 @@ to check-zone-drones
     ifelse counter < 4
     [
       set color random 100
-      let zcor-tmp zcor
-      let traget one-of patches with [ not obstacle? and zone-of-path-drones patch pxcor pycor pzcor = center and pzcor = floor zcor-tmp ]
+      set zcor-tmp zcor
+      let li patches with [ not obstacle? and zone-of-path-drones self = center and pzcor = floor zcor-tmp ]
+      set target item random count li sort li
       intelligent-update-belief "explorator-check-counter" counter + 1
+      intelligent-update-belief "target" target
     ]
     ;; Sinon, le drone recherche une autre zone a explorer
     [

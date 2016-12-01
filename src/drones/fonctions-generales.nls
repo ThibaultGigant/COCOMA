@@ -278,7 +278,7 @@ to suivi-target-drones
       rotate-agent intelligent-get-belief "target"
     ]
     ; Déplacement
-    if distance-nowrap intelligent-get-belief "target" > drones-suivi-radius [ fd-drones speed ]
+    if statu != "protect-convoi" or distance-nowrap intelligent-get-belief "target" > drones-suivi-radius [ fd-drones speed ]
   ]
 end
 

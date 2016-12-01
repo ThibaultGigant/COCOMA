@@ -223,7 +223,6 @@ to update-Infos-Drones [content]
       
       ifelse current-info-drone = [] 
       [
-        show "here"
         intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones
       ]
       [

@@ -106,7 +106,6 @@ to setup-drones
     ;; Variables
     ;; ---
     ;; Statut du drone
-    set statu "protect-convoi"
     set initial-health max-health-drones
     set health initial-health
     set leader? false
@@ -162,6 +161,7 @@ to setup-drones
     ;; Stratégie
     ifelse tmp-nb-protector > 0
     [
+      set statu "protect-convoi"
       add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
       add-intention "take-off-drones" "take-off-drones-done"
       set last-role intention-name get-intention
@@ -170,6 +170,7 @@ to setup-drones
     [
       if tmp-nb-explorator > 0
       [
+        set statu "explorer"
         intelligent-update-belief "etat terrain" setup-etat-terrain-drones
         add-intention "explore-drones" "explore-drones-done"
         add-intention "take-off-drones" "take-off-drones-done"

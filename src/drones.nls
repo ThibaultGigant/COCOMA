@@ -15,6 +15,7 @@ drones-own [
   ;;
   ;; • initial-health             : Nombre de points de vie initiaux du drone
   ;; • health                     : Nombre de points de vie restants au drone
+  ;; • health                     : Nombre de points de vie restants au drone au tick dernier
   ;; • leader?                    : Grade du drone
   ;; • dead?                      : Vitalité du drone
   ;; • isAttacked                 : Indique si le drone est attaqué
@@ -30,6 +31,7 @@ drones-own [
   statu
   initial-health
   health
+  last-health
   leader?
   dead?
   isAttacked
@@ -110,6 +112,7 @@ to setup-drones
     set health initial-health
     set leader? false
     set dead? false
+    set isAttacked false
     set vision-radius drones-vision-radius
     
     set intentions ([])
@@ -185,6 +188,7 @@ to setup-drones-beliefs
   intelligent-update-belief "role" "drone-protect"
   intelligent-update-belief "K-Infos-Drones" []
   intelligent-update-belief "K-Infos-Convois" []
+  intelligent-update-belief "K-receivers" []
   intelligent-update-belief "target" nobody
   intelligent-update-belief "convoi-already-protected" []
   intelligent-update-belief "etat enrollement" "cherche convoi"
@@ -266,41 +270,54 @@ end
 to drones-think
   ;; Les drones cherchent un chemin jusqu'à leur target
   ;; s'il y a un obstable
-  ;search-ways-drones
+  search-ways-drones
   
   ask drones with [ not dead? and fuel >= 0 ] [
     ;; Connaissances
-    send-knowledges-drones
+    traite-connaissances-drones
     
-    let new-knowledge get-msg-if-performative "knowledge"
-    while [new-knowledge != nobody]
-    [
-      if new-knowledge != nobody
-      [
-        update-knowledges-drones new-knowledge
-      ]
-      set new-knowledge get-msg-if-performative "knowledge"
-    ]
-    
+    ;; Exécution des comportements
     execute-intentions
     
+    ;; Vérifie s'il est attaqué
+    check-attacked
+    
+    ;; Vérification du carburant restant
     check-fuel-drones
     
-    ;; Coût du flottement
-;    if zcor > solAlt + 0.5 [ fuel-consomme "floating" 1 ]
-    
-;    if ticks mod 15 < 15
-;    [
-;      show-debug intelligent-get-belief "K-Infos-Drones"
-;      show-debug intelligent-get-belief "K-Infos-Convois"
-;    ]
+    ;; Mise en place de la mémoire temporelle
+    set last-role intention-name get-intention
+    set last-isAttacked isAttacked
+    set last-stat-of-fuel floor (fuel / max (list fuel-estimate 50))
   ]
   
+  ;; Déctectino des drones morts et des drones sans carburant
   ask drones with [ (dead? or fuel <= 0) and zcor > solAlt ] [
     set color black
     ifelse solAlt > 0.2
     [ set zcor zcor - 0.2 ]
     [ set zcor 0 ]
+  ]
+end
+
+;; traite-connaissances
+;; ---
+;; Envoie et reçoit les messages concernant le partage
+;; des connaissances
+to traite-connaissances-drones
+  ;; Envoie des connaissances
+  send-knowledges
+  
+  ;; Réception des messages de partage de connaissance
+  ;; et mise à jour des connaissances
+  let new-knowledge get-msg-if-performative "knowledge"
+  while [new-knowledge != nobody]
+  [
+    if new-knowledge != nobody
+    [
+      update-knowledges-drones new-knowledge
+    ]
+    set new-knowledge get-msg-if-performative "knowledge"
   ]
 end
 

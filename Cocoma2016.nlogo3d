@@ -39,16 +39,25 @@ patches-own [obstacle? base? hangar? objectif? bridge? ; variables topologiques 
   as-closed as-heuristic as-prev-pos ; variables temporaires pour calculer les chemins AStar (effaces a chaque calcul de plan)
   ]
 convois-own[incoming-queue
-  finished? ; Is the goal reached ?
-  leader?   ; car leading the convoi convoi
-  to-protect? ; Should this car be protected at all cost ?
-  genlongpath? ; Should the leader compute a new path (but not shortest) ?
-  dead?
-  speed maxdir ; maximal speed of a car, and max angle
-  last-send-time ; communication historical time-stamp
-  hp ; Nombre de points de vie restant
-  beliefs
-  intentions
+  finished?         ; Is the goal reached ?
+  leader?           ; The car leading the convoi convoi
+  to-protect?       ; Should this car be protected at all cost ?
+  genlongpath?      ; Should the leader compute a new path (but not shortest) ?
+  dead?             ; Vitalité du convoi
+  speed maxdir      ; Maximal speed of a car, and max angle
+  last-send-time    ; Communication historical time-stamp
+  health            ; Nombre de points de vie restant
+  last-health       ; Nombre de points de vie restant au tick dernier
+  beliefs           ; Ensemble des croyances du convoi
+  intentions        ; Liste des intentions du convoi
+
+  first-send        ; Est-ce que le convoi à déjà communiqué au moins une fois ses informations
+  K-convois-updated ; Est-ce que les connaissances concernant les convois ont été modifiées ?
+  K-drones-updated  ; Est-ce que les connaissances concernant les drones ont été modifiées ?
+
+  last-cortege      ; Etat du cortège au tick dernier
+  isAttacked        ; Est-ce que le convois est attaqué ?
+  last-isAttacked   ; Est-ce que le convois était attaqué au tick dernier ?
 ]
 
 
@@ -81,7 +90,7 @@ to setup
   reset-ticks
   setup-drones
   setup-enemies
-  ;setup-citizens
+;  setup-citizens
 ;  setup-hq
 
   setup-precache
@@ -226,10 +235,18 @@ to setup-convois
       set genlongpath? astar-longpath
       set dead? false
 
-      set hp convois-health-points
+      set health convois-health-points
+      set last-health health
 
       set beliefs ([])
       set intentions ([])
+
+      set first-send false
+      set K-convois-updated false
+      set K-drones-updated false
+
+      set isAttacked false
+      set last-isAttacked false
 
       ; Visu
       set label who ; display the car names
@@ -682,7 +699,7 @@ INPUTBOX
 348
 115
 nb-enemies
-0
+3
 1
 0
 Number
@@ -1004,7 +1021,7 @@ SWITCH
 131
 show_messages
 show_messages
-0
+1
 1
 -1000
 
@@ -1609,7 +1626,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

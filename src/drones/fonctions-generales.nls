@@ -48,6 +48,37 @@ to-report distance-min-drones
   report true
 end
 
+;; observe-convois-drones
+;; ---
+;; Le drone observe les convois aux alentours, et met à jour ses connaissances
+;; si nécessaire
+to observe-convois-drones
+  let me self ;turtle who
+  if ticks mod 10 = 0
+  [
+    let infos-convois intelligent-get-belief "K-Infos-Convois"
+    let info-convoi []
+    ;; Mise à jour des convois dans le champs de vision
+    foreach sort convois with [distance me <= drones-vision-radius and myself != [intelligent-get-belief "target"] of me]
+    [
+      set info-convoi K-get-Info-Convoi ?
+      if not empty? info-convoi and K-get "tick" info-convoi + 20 > ticks
+      [
+        let pos position info-convoi infos-convois
+        let new-info-convoi (list "tick" ticks "turtle" ? "position" [patch-here] of ? "role" K-get "role" info-convoi "dead" K-get "dead" info-convoi "pv" K-get "pv" info-convoi)
+        intelligent-update-belief "K-Infos-Convois" lput new-info-convoi remove-item pos infos-convois
+        set K-convois-updated true
+      ]
+      if empty? info-convoi
+      [
+        let new-info-convoi (list "tick" ticks "turtle" ? "position" [patch-here] of ? "role" nobody "dead" nobody "pv" nobody)
+        intelligent-update-belief "K-Infos-Convois" lput new-info-convoi infos-convois
+        set K-convois-updated true
+      ]
+    ]
+  ]
+end
+
 to ancre-II-Carburant
 end
 

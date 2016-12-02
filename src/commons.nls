@@ -323,3 +323,12 @@ end
 to show-debug [ msg ]
   if show_debug = true [ show msg ]
 end
+
+;; check-attacked
+;; ---
+;; Le drone vérifie s'il est attaqué
+to check-attacked
+  ifelse not isAttacked
+  [ if last-health != health [ set isAttacked true  ] ]
+  [ if last-health  = health [ set isAttacked false ] ]
+end

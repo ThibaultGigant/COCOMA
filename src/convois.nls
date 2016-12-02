@@ -81,6 +81,16 @@ to convois-think
     ;; Traitement des messages par le convoi
     ask convois with [not finished? and not dead?] [
       msg-processing
+      
+      ;; Vérifie si les convois sont attaqués
+      check-attacked
+      
+      ;; Partage des connaissances
+      send-knowledges
+      
+      ;; Mise en place de la mémoire temporelle
+      set last-isAttacked isAttacked
+      set last-cortege intelligent-get-belief "cortege-buddies"
     ]
   ]
 end
@@ -196,7 +206,7 @@ end
 
 ;; Vérifie que le convoi est en vie, sinon envoie un message au reste du cortège et relie celui d'après avec celui d'avant
 to check-if-alive
-  if hp <= 0
+  if health <= 0
   [
     ;; Récupération du convoi d'avant et d'après
     let previous-convoi nobody
@@ -235,7 +245,12 @@ to setup-convois-beliefs
   
   ;; Connaissances sur le cortege auquel on appartient  
   intelligent-update-belief "cortege-buddies" sort-on [who] convois
+  set last-cortege intelligent-get-belief "cortege-buddies"
   intelligent-update-belief "leader" min-one-of convois [who] ;; Le leader du cortege auquel le convoi appartient, donc different de leader?
+  
+  intelligent-update-belief "K-receivers" []
+  intelligent-update-belief "K-Infos-Drones" []
+  intelligent-update-belief "K-Infos-Convois" []
   
   ;; show intelligent-get-belief "leader"
   ;; show intelligent-get-belief "cortege-buddies"

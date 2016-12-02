@@ -8,11 +8,11 @@ __includes ["src/functions-astar.nls"
             "src/convois-communications.nls"
             "src/functions-bdi.nls"
             "src/commons.nls"
+            "src/partage-connaissances.nls"
 
             "src/drones/fonctions-generales.nls"
             "src/drones/protection.nls"
             "src/drones/intentions-generales.nls"
-            "src/drones/partage-connaissances.nls"
             "src/drones/exploration.nls"]
 
 extensions [sound]

@@ -7,27 +7,31 @@ breed [drones drone]
 drones-own [
   ;; Statut du drone
   ;; ---
-  ;; • statu                      : Le poste que doit tenir le drone parmis
-  ;;    • protect-convoi          : Le drone protege un convoie
-  ;;    • attaquant               : Le drone attaque les ennemis
-  ;;    • ravitailleur            : Le drone ravitaille les autres drones
-  ;;    • surveillant             : Le drone surveille le terrain
+  ;; • statu                       : Le poste que doit tenir le drone parmis
+  ;;    • protect-convoi           : Le drone protege un convoie
+  ;;    • attaquant                : Le drone attaque les ennemis
+  ;;    • ravitailleur             : Le drone ravitaille les autres drones
+  ;;    • surveillant              : Le drone surveille le terrain
   ;;
-  ;; • initial-health             : Nombre de points de vie initiaux du drone
-  ;; • health                     : Nombre de points de vie restants au drone
-  ;; • health                     : Nombre de points de vie restants au drone au tick dernier
-  ;; • leader?                    : Grade du drone
-  ;; • dead?                      : Vitalité du drone
-  ;; • isAttacked                 : Indique si le drone est attaqué
-  ;; • vision-radius              : Taille du champs de vision
+  ;; • initial-health              : Nombre de points de vie initiaux du drone
+  ;; • health                      : Nombre de points de vie restants au drone
+  ;; • health                      : Nombre de points de vie restants au drone au tick dernier
+  ;; • leader?                     : Grade du drone
+  ;; • dead?                       : Vitalité du drone
+  ;; • isAttacked                  : Indique si le drone est attaqué
+  ;; • vision-radius               : Taille du champs de vision
   
-  ;; • intentions                 : Liste des intentions du drone, pour la BDI
-  ;; • incoming-queue             : Liste des messages reçus
+  ;; • intentions                  : Liste des intentions du drone, pour la BDI
+  ;; • incoming-queue              : Liste des messages reçus
   ;; 
-  ;; • K-drones-updated           : Indique s'il y a eu une modification apporter à ses connaissances
-  ;; • last-role                  : Role du drone au dernier tick
-  ;; • last-isAttacked            : Indique si le drone était attaqué au dernier tick
-  ;; • last-stat-of-fuel          : Donne l'état du niveau de carburant du dernier tick (cf. partage-connaissances.nls)
+  ;; • K-drones-updated            : Indique s'il y a eu une modification apporter à ses connaissances concernant les drones
+  ;; • K-convois-updated           : Indique s'il y a eu une modification apporter à ses connaissances concernant les convois
+  ;; • K-enemies-updated           : Indique s'il y a eu une modification apporter à ses connaissances concernant les ennemis
+  ;; • last-role                   : Role du drone au dernier tick
+  ;; • last-isAttacked             : Indique si le drone était attaqué au dernier tick
+  ;; • last-stat-of-fuel           : Donne l'état du niveau de carburant du dernier tick (cf. partage-connaissances.nls)
+  ;; • last-tick-update            : Dernier tick ou le convoi à changer de configuration
+  ;; • last-call-for-get-receivers : Dernière liste engendrée par la fonction get-receivers
   statu
   initial-health
   health
@@ -42,10 +46,12 @@ drones-own [
   
   K-drones-updated
   K-convois-updated
+  K-enemies-updated
   last-role
   last-isAttacked
   last-stat-of-fuel
-  
+  last-tick-update
+  last-call-for-get-receivers
 
   ;; Beliefs
   ;; ---
@@ -120,7 +126,10 @@ to setup-drones
     
     set K-drones-updated false
     set K-convois-updated false
+    set K-enemies-updated false
     set last-isAttacked false
+    set last-tick-update 0
+    set last-call-for-get-receivers []
     
     ;; Beliefs
     ;; ---
@@ -188,6 +197,7 @@ to setup-drones-beliefs
   intelligent-update-belief "role" "drone-protect"
   intelligent-update-belief "K-Infos-Drones" []
   intelligent-update-belief "K-Infos-Convois" []
+  intelligent-update-belief "K-Infos-Enemies" []
   intelligent-update-belief "K-receivers" []
   intelligent-update-belief "target" nobody
   intelligent-update-belief "convoi-already-protected" []
@@ -273,8 +283,17 @@ to drones-think
   search-ways-drones
   
   ask drones with [ not dead? and fuel >= 0 ] [
+    ;; Le drone observe les alentours
+    ;; Les convois --- enlevé
+    ;; Les ennemis
+    ;observe-convois-drones
+    observe-enemies
+    
+    ;; Traitement des morts
+    traite-dead
+    
     ;; Connaissances
-    traite-connaissances-drones
+    traite-connaissances
     
     ;; Exécution des comportements
     execute-intentions
@@ -297,27 +316,6 @@ to drones-think
     ifelse solAlt > 0.2
     [ set zcor zcor - 0.2 ]
     [ set zcor 0 ]
-  ]
-end
-
-;; traite-connaissances
-;; ---
-;; Envoie et reçoit les messages concernant le partage
-;; des connaissances
-to traite-connaissances-drones
-  ;; Envoie des connaissances
-  send-knowledges
-  
-  ;; Réception des messages de partage de connaissance
-  ;; et mise à jour des connaissances
-  let new-knowledge get-msg-if-performative "knowledge"
-  while [new-knowledge != nobody]
-  [
-    if new-knowledge != nobody
-    [
-      update-knowledges-drones new-knowledge
-    ]
-    set new-knowledge get-msg-if-performative "knowledge"
   ]
 end
 

@@ -22,9 +22,9 @@ to recrutement-drones
     ifelse protecteur = nobody
     [
       set reply add-content "Accept" reply
-      intelligent-update-belief "drone-protecteur" (list sender 0)
+      intelligent-update-belief "drone-protecteur" sender
     ]
-    [ set reply add-content item 0 protecteur reply ]
+    [ set reply add-content protecteur reply ]
     
     send reply
   ]

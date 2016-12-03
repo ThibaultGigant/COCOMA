@@ -2,6 +2,25 @@
 ;; Partage des connaissances ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Structure représentant les connaissances de chaque drones
+;; et de chaque convoi concernant leurs alliés
+;; ---
+;; Liste [Infos-Drones, Infos-Convois]
+;; • Info-Drones
+;;   Liste [ticks, turtle, position, role, dead?, health, fuel]
+;;   o ticks       : Date de l'observation
+;;   o turle       : Drone concerné
+;;   o position    : Patch où se trouvait le drone
+;;   o role        : Role du drone
+;;   o dead?       : Etat du drone (vivant / mort)
+;;   o health      : Points de vie restants au drone
+;;   o fuel        : Carburant restant au drone
+;; • Info-Convoi
+;;   Liste [ticks, turtle, position, role, dead?, health]
+;;   --- Idem, sans le champs "fuel"
+
+to ancre-I-envoi-des-connaissances end
+
 ;; send-knowledges
 ;; ---
 ;; Envoie un message aux turtles visés,
@@ -21,13 +40,28 @@ to send-knowledges
     if can-communicate-with-convoi ?
     [
       set receivers lput ? receivers
-      set new-liste remove position ? new-liste new-liste
+      set new-liste remove ? new-liste
     ]
   ]
+  
+  ;; Intersection, pour detecter si de nouveaux agents
+  ;; entrent dans "l'équipe"
+  let liste-receivers-tmp get-receivers-drones false
+  let liste-tmp last-call-for-get-receivers
+  foreach liste-receivers-tmp
+  [
+    if not member? ? last-call-for-get-receivers
+    [
+      set receivers lput ? receivers
+      set K-drones-updated true
+      set K-convois-updated true
+      set K-enemies-updated true
+    ]
+  ]
+  
   intelligent-update-belief "K-receivers" new-liste
   
-  if empty? receivers [ stop ]
-  
+  if empty? receivers [ stop ]  
   
   ;; Connaissances à propos des drones
   let content create-knowledges-Infos-Drones-drones
@@ -46,12 +80,12 @@ to send-knowledges
   ]
   
   ;; Connaissances à propos des attaquant
-;  set content create-knowledges-Infos-Enemies-drones
-;  if content != nobody
-;  [
-;    let msg create-complete-msg receivers "knowledge" content
-;    send msg
-;  ]
+  set content create-knowledges-Infos-Enemies-drones
+  if content != nobody
+  [
+    let msg create-complete-msg receivers "knowledge" content
+    send msg
+  ]
 end
 
 ;; create-knowledges-Infos-Drones-drones
@@ -72,7 +106,7 @@ to-report create-knowledges-Infos-Drones-drones
     let content []
     ifelse member? self drones ; TODO changer le member? en ajoutant un attribut à tout les turtles
     [
-      set content fput (list "tick" ticks "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "isAtatcked" isAttacked "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
+      set content fput (list "tick" last-tick-update "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "isAtatcked" isAttacked "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
       let content-convoi intelligent-get-belief "K-Infos-Convois"
     ]
     [
@@ -95,8 +129,7 @@ end
 ;;   o Une information sur un convois
 ;; • Pour un convoi
 ;;   o Une information sur un autre convois
-;;   o 
-;;   o 
+;;   o isAttacked
 to-report create-knowledges-Infos-Convois-drones
   if (need-send-knowledges "convois")
   [
@@ -105,7 +138,7 @@ to-report create-knowledges-Infos-Convois-drones
     [
       if not first-send
       [ set first-send true ]
-      set content fput (list "tick" ticks "turtle" self "position" patch-here "leader" intelligent-get-belief "leader" "dead" dead? "pv" health "isAtatcked" isAttacked "taille-cortege" length intelligent-get-belief "cortege-buddies") intelligent-get-belief "K-Infos-Convois"
+      set content fput (list "tick" last-tick-update "turtle" self "position" patch-here "leader" intelligent-get-belief "leader" "dead" dead? "pv" health "isAtatcked" isAttacked "taille-cortege" length intelligent-get-belief "cortege-buddies") intelligent-get-belief "K-Infos-Convois"
     ]
     [
       set content intelligent-get-belief "K-Infos-Convois"
@@ -114,6 +147,20 @@ to-report create-knowledges-Infos-Convois-drones
     set K-convois-updated false
     
     report (list "K-Infos-Convois" content)
+  ]
+  
+  report nobody
+end
+
+;; create-knowledges-Infos-Enemies-drones
+;; ---
+;; Regroupement des connaissances
+;; Ne crée un nouveau knowledge que s'il y a eu une modification concernant les ennemis
+to-report create-knowledges-Infos-Enemies-drones
+  if (need-send-knowledges "enemies")
+  [
+    set K-enemies-updated false
+    report (list "K-Infos-Enemies" intelligent-get-belief "K-Infos-Enemies")
   ]
   
   report nobody
@@ -185,7 +232,9 @@ end
 ;; ---
 ;; Ajoute à la liste des receivers les agents qui devronts recevoir les updates
 to set-drones-receivers
-  intelligent-update-belief "K-receivers" get-receivers-drones false
+  let liste get-receivers-drones false
+  intelligent-update-belief "K-receivers" liste
+  set last-call-for-get-receivers liste
 end
 
 ;; need-send-knowledges
@@ -211,10 +260,13 @@ to-report need-send-knowledges [ type-knowledge ]
     ;; S'il y a eu une modification des connaissances à propos des drones
     if type-knowledge = "drones"
     [
-      report (last-role         != intention-name get-intention or
-              last-isAttacked   != isAttacked or
-              last-stat-of-fuel != floor (fuel / max (list fuel-estimate 50)) or
-              K-drones-updated)
+      let flag (last-role         != intention-name get-intention or
+                last-isAttacked   != isAttacked or
+                last-stat-of-fuel != floor (fuel / max (list fuel-estimate 50)))
+               
+      if flag [ set last-tick-update ticks ]
+      
+      report flag or K-drones-updated
     ]
     ;; S'il y a eu une modification des connaissances à propos des convois
     if type-knowledge = "convois"
@@ -224,8 +276,8 @@ to-report need-send-knowledges [ type-knowledge ]
     ;; S'il y a eu une modification des connaissances à propos des ennemis
     if type-knowledge = "enemies"
     [
-      report false
-    ]  
+      report K-enemies-updated
+    ]
   ]
   
   ;; Pour les convois
@@ -248,15 +300,174 @@ to-report need-send-knowledges [ type-knowledge ]
     [
       if not first-send
       [ report true ]
-      report (last-cortege != intelligent-get-belief "cortege-buddies" or
-              last-isAttacked != isAttacked or
-              K-convois-updated)
+      let flag (last-cortege != intelligent-get-belief "cortege-buddies" or
+                last-isAttacked != isAttacked)
+      if flag [set last-tick-update ticks]
+      report flag or K-convois-updated
     ]
     ;; S'il y a eu une modification des connaissances à propos des ennemis
     if type-knowledge = "enemies"
     [
-      report false
+      report K-enemies-updated
     ] 
   ]
+end
+
+to ancre-II-reception-et-mise-a-jour-des-connaissances end
+
+;; Fusion de connaissances
+to update-knowledges [new-knowledges]
+  if get-performative new-knowledges = "knowledge"
+  [
+    ;; Récupération des connaissances
+    let content get-content new-knowledges
+    
+    ifelse member? "K-Infos-Drones" content
+    [
+      update-Infos-Drones content
+    ]
+    [
+      ifelse member? "K-Infos-Convois" content
+      [
+        update-Infos-Convois content
+      ]
+      [
+        if member? "K-Infos-Enemies" content
+        [
+          update-Infos-Enemies content
+        ]
+      ]
+    ]
+  ]
+end
+
+to update-Infos-Drones [content]
+  ;; Récupération de la liste des croyances sur les drones
+  let Infos-Drones K-get "K-Infos-Drones" content
   
+  let tick-of-K 0
+  
+  ;; Pour chaque drone
+  foreach Infos-Drones
+  [
+    let turt K-get "turtle" ?
+    set tick-of-K K-get "tick" ?
+    
+    ;; On ne traite que les drones autres que nous même
+    if turt != self [
+      
+      ;; Récupération de nos croyance concernant ce drone
+      let current-info-drone K-get-Info-Drone turt
+      
+      let K-Infos-Drones intelligent-get-belief "K-Infos-Drones"
+      
+      ifelse current-info-drone = [] 
+      [
+        intelligent-update-belief "K-Infos-Drones" lput ? K-Infos-Drones
+        set K-drones-updated true
+      ]
+      [
+        if tick-of-K > K-get "tick" current-info-drone
+        [
+          intelligent-update-belief "K-Infos-Drones" lput ? remove current-info-drone K-Infos-Drones
+          set K-drones-updated true
+        ]
+      ]
+    ]
+  ]
+end
+
+to update-Infos-Convois [content]
+  ;; Récupération de la liste des croyances sur les drones
+  let Infos-Convois K-get "K-Infos-Convois" content
+  
+  let tick-of-K 0
+  
+  ;; Pour chaque drone
+  foreach Infos-Convois
+  [
+    let turt K-get "turtle" ?
+    set tick-of-K K-get "tick" ?
+   
+    ;; On ne traite que les drones autres que nous même
+    if turt != self [
+      
+      ;; Récupération de nos croyance concernant ce drone
+      let current-info-convoi K-get-Info-Convoi turt
+      
+      let K-Infos-Convois intelligent-get-belief "K-Infos-Convois"
+      
+      ifelse current-info-convoi = [] 
+      [
+        intelligent-update-belief "K-Infos-Convois" lput ? K-Infos-Convois
+        set K-convois-updated true
+      ]
+      [
+        if tick-of-K > K-get "tick" current-info-convoi
+        [
+          intelligent-update-belief "K-Infos-Convois" lput ? remove current-info-convoi K-Infos-Convois
+          set K-convois-updated true
+        ]
+      ]
+    ]
+  ]
+end
+
+
+to update-Infos-Enemies [content]
+end
+
+to ancre-III-manipulations-des-connaissances end
+
+;; traite-connaissances
+;; ---
+;; Envoie et reçoit les messages concernant le partage
+;; des connaissances
+to traite-connaissances
+  ;; Envoie des connaissances
+  send-knowledges
+  
+  ;; Mise à jours transmises
+  set K-drones-updated false
+  set K-convois-updated false
+  
+  ;; Réception des messages de partage de connaissance
+  ;; et mise à jour des connaissances
+  let new-knowledge get-msg-if-performative "knowledge"
+  while [new-knowledge != nobody]
+  [
+    if new-knowledge != nobody
+    [
+      update-knowledges new-knowledge
+    ]
+    set new-knowledge get-msg-if-performative "knowledge"
+  ]
+  
+end
+
+;; Retourne le champs voulu dans Info-Drones et Info-Convois
+to-report K-get [field K]
+    let pos position field K
+    report item (pos + 1) K
+end
+
+to-report K-get-Info-Drone  [d]
+  let li (filter [K-get "turtle" ? = d] intelligent-get-belief "K-Infos-Drones")
+  ifelse empty? li
+  [ report li ]
+  [ report item 0 li ]
+end
+
+to-report K-get-Info-Convoi [c]
+  let li filter [K-get "turtle" ? = c] intelligent-get-belief "K-Infos-Convois"
+  ifelse empty? li
+  [ report li ]
+  [ report item 0 li ]
+end
+
+to-report K-get-Info-Enemy [en]
+  let li filter [K-get "turtle" ? = en] intelligent-get-belief "K-Infos-Enemies"
+  ifelse empty? li
+  [ report li ]
+  [ report item 0 li ]
 end

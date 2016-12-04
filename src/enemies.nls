@@ -244,7 +244,9 @@ end
 
 to enemies-think
   if count convois > 0 [
-    ask enemies [
+    ask enemies with [not dead?] [
+      check-if-alive-enemies
+      
       detect-convois
       update-intentions
       execute-intentions
@@ -252,6 +254,16 @@ to enemies-think
     ]
     ; Decide d'un chemin a suivre si l'ennemi a une cible
     search-ways-for-enemies
+  ]
+end
+
+;; check-if-alive-enemies
+;; ---
+;; Vérifie si l'ennemi est toujours vivant
+to check-if-alive-enemies
+  if hp <= 0
+  [
+    set dead? true
   ]
 end
 

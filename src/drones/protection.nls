@@ -192,6 +192,11 @@ to protect-convoi
   enrollement-suivi
   
   suivi-convoi-drones
+    
+  ;; Attaque des drones
+  attaque-drones
+  
+  ronde
 end
 
 to-report protect-convoi-done
@@ -219,6 +224,7 @@ to search-convoi-drones
   ]
   [
     intelligent-update-belief "target" first sort-on [distance-nowrap myself] targets
+    intelligent-update-belief "convoi-suivi" intelligent-get-belief "target"
   ]
 end
 
@@ -245,4 +251,26 @@ to suivi-convoi-drones
   ]
   
   suivi-target-drones
+end
+
+;; ronde
+;; ---
+;; Fait faire une ronde autour du convoi
+to ronde
+  if not attacker
+  [
+    let convoi-suivi intelligent-get-belief "convoi-suivi"
+    if convoi-suivi = nobody [ stop ]
+    let diff 90 - heading - towards-nowrap convoi-suivi
+    if diff > 30
+    [
+      lt 5
+      fuel-consomme "rotation" 5
+    ]
+    if diff < -30
+    [
+      rt 5
+      fuel-consomme "rotation" 5
+    ]
+  ]
 end

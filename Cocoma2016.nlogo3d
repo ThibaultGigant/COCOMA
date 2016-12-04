@@ -13,7 +13,8 @@ __includes ["src/functions-astar.nls"
             "src/drones/fonctions-generales.nls"
             "src/drones/protection.nls"
             "src/drones/intentions-generales.nls"
-            "src/drones/exploration.nls"]
+            "src/drones/exploration.nls"
+            "src/drones/attaque.nls"]
 
 extensions [sound]
 
@@ -859,7 +860,7 @@ drones-vision-radius
 drones-vision-radius
 0
 100
-50
+30
 1
 1
 NIL
@@ -1094,7 +1095,7 @@ ammos-degats
 ammos-degats
 0
 100
-50
+23
 1
 1
 NIL
@@ -1288,6 +1289,36 @@ nb-protector
 nb-drones - nb-explorator
 nb-drones - nb-explorator
 3
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+756
+585
+928
+618
+drones-radius-shoot
+drones-radius-shoot
+10
+drones-vision-radius
+13
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+934
+585
+1106
+618
+drones-reload-time
+drones-reload-time
+0
+100
+7
 1
 1
 NIL

@@ -34,8 +34,6 @@ to convois-think
       msg-processing
       
       observe-enemies
-      
-      ;show intelligent-get-belief "K-Infos-Drones"
     ]
   ]
 end
@@ -224,13 +222,6 @@ to check-enemies-around-convois
                        and [distance-nowrap myself] of K-get "turtle" ? < 20 ] enemies-around-me
     let count-left length left-to-me
     
-    if count-left + count-right + count-face > 0
-    [
-      show (word "droite " count-right)
-      show (word "droite " count-face)
-      show (word "droite " count-left)
-    ]
-    
     
     let angle-to-objectif heading - towards-nowrap objectif
     
@@ -253,7 +244,8 @@ to check-enemies-around-convois
         ;; Mise à jour de la propre connaissance sur le cortege
         split-update-belief-cortege [who] of middle-cortege
         
-        set new-target patches with [ [distance-nowrap me] of self > taille-zone-drones / 2
+        set new-target patches with [ pzcor = solAlt
+                                  and [distance-nowrap me] of self > taille-zone-drones / 2
                                   and [distance-nowrap me] of self < taille-zone-drones
                                   and 180 - [heading] of me - [towards-nowrap me] of self < -25
                                   and 180 - [heading] of me - [towards-nowrap me] of self < -25 - 90 ]
@@ -265,7 +257,8 @@ to check-enemies-around-convois
           intelligent-update-belief "target" new-target
         ]
         
-        set new-target patches with [ [distance-nowrap me] of self > taille-zone-drones / 2
+        set new-target patches with [ pzcor = solAlt
+                                  and [distance-nowrap me] of self > taille-zone-drones / 2
                                   and [distance-nowrap me] of self < taille-zone-drones
                                   and 180 - [heading] of me - towards-nowrap me > 25
                                   and 180 - [heading] of me - towards-nowrap me > 25 + 90 ]
@@ -288,7 +281,8 @@ to check-enemies-around-convois
         ;; S'il y a peu d'ennemis à droite 
         if not found and count-right < count-face / 2
         [
-          set new-target patches with [[distance-nowrap me] of self > taille-zone-drones and 180 - [heading] of me - towards-nowrap me < -25 ]
+          set new-target patches with [pzcor = solAlt
+                                  and [distance-nowrap me] of self > taille-zone-drones and 180 - [heading] of me - towards-nowrap me < -25 ]
           if not empty? sort new-target
           [
             set found true
@@ -316,7 +310,8 @@ to check-enemies-around-convois
         ;; s'il y a peu d'ennemis à gauche
         if not found and count-left < count-face / 2
         [
-          set new-target patches with [ [distance-nowrap me] of self > taille-zone-drones / 2
+          set new-target patches with [pzcor = solAlt
+                                  and  [distance-nowrap me] of self > taille-zone-drones / 2
                                   and [distance-nowrap me] of self < taille-zone-drones and 180 - [heading] of me - towards-nowrap me > 25 ]
           if not empty? sort new-target
           [
@@ -329,7 +324,8 @@ to check-enemies-around-convois
         ;; Sinon, s'il y a peu d'ennemis à droite 
         if not found and count-right < count-face / 2
         [
-          set new-target patches with [ self != [patch-here] of me and [distance-nowrap me] of self > taille-zone-drones / 2
+          set new-target patches with [pzcor = solAlt
+                                  and  self != [patch-here] of me and [distance-nowrap me] of self > taille-zone-drones / 2
                                   and [distance-nowrap me] of self < taille-zone-drones and 180 - [heading] of me - towards-nowrap me < -25 ]
           if not empty? sort new-target
           [
@@ -345,7 +341,8 @@ to check-enemies-around-convois
     [
       if not found and count-right < count-face / 2
       [
-        set new-target patches with [ self != [patch-here] of self and [distance-nowrap me] of self > taille-zone-drones / 2
+        set new-target patches with [pzcor = solAlt
+                                  and  self != [patch-here] of self and [distance-nowrap me] of self > taille-zone-drones / 2
                                   and [distance-nowrap me] of self < taille-zone-drones and [heading] of me - towards-nowrap me < -25 ]
         if not empty? sort new-target
         [
@@ -358,7 +355,8 @@ to check-enemies-around-convois
     
     if not found and count-left < count-right
     [
-      set new-target patches with [ self != [patch-here] of me and [distance-nowrap me] of self > taille-zone-drones / 2
+      set new-target patches with [pzcor = solAlt
+                                  and  self != [patch-here] of me and [distance-nowrap me] of self > taille-zone-drones / 2
                                   and [distance-nowrap me] of self < taille-zone-drones and 180 - [heading] of me - towards-nowrap me > 25 ]
       if not empty? sort new-target
       [

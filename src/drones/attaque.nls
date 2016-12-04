@@ -1,0 +1,124 @@
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Attaque des drones ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; attaque-drones
+;; ---
+;; Programme l'attaque des drones
+to attaque-drones
+  let target intelligent-get-belief "target"
+  
+  ;; Si l'on suivait un patch, on oublie
+  if target != nobody and member? target patches
+  [
+    intelligent-update-belief "target" intelligent-get-belief "convoi-suivi"
+  ]
+  
+  ;; Vérifie la santé de l'ennemi
+  if target != nobody and member? target enemies
+  [
+    if [dead?] of target or distance target > drones-vision-radius
+    [
+      intelligent-update-belief "target" intelligent-get-belief "convoi-suivi"
+    ]
+  ]
+  
+  
+  let found-enemy intelligent-get-belief "target" != nobody and member? intelligent-get-belief "target" enemies
+  
+  ;; Si l'on ne cible pas déjà un enemi
+  ;; on en cherche un a cibler
+  if not found-enemy
+  [
+    set found-enemy choose-enemy-to-target-in-vision
+    if not found-enemy
+    [ choose-enemy-to-target-in-knowledge ]
+  ]
+  
+  if found-enemy
+  [
+    shoot-target-drones
+  ]
+  
+  set elapsed-time elapsed-time + 1
+end
+
+;; choose-enemy-to-target-in-vision
+;; ---
+;; Choisi un ennemi à cibler, parmi les ennemis en vu
+;; Renvoie si un ennemi à été trouvé
+to-report choose-enemy-to-target-in-vision
+  if statu = "protect-convoi"
+  [
+    if not attacker [ report false ]
+    
+    let target-enemies enemies with [not dead?] in-radius-nowrap drones-radius-shoot
+    if empty? sort target-enemies [ report false ]
+    let me self
+    let min-dist min [distance me] of target-enemies
+    let target-enemy one-of target-enemies with [ distance me = min-dist ]
+    
+    intelligent-update-belief "target" target-enemy
+    
+    report true
+  ]
+  
+  if statu = "explorer"
+  [
+    
+    report false
+  ]
+  report false
+end
+
+;; choose-enemy-to-target-in-knowledge
+;; ---
+;; Choisi un ennemi à cibler, parmi les ennemis connus
+to choose-enemy-to-target-in-knowledge
+  if statu = "protect-convoi"
+  [
+    if not attacker [ stop ]
+    
+    let minimum max-pxcor
+    let nearest-pos nobody
+    foreach intelligent-get-belief "K-Infos-Enemies"
+    [
+      let center intelligent-get-belief "convoi-suivi"
+      if center = nobody
+      [ set center self ]
+      let dist [distance K-get "position" ?] of center
+      if dist < drones-radius-shoot
+      and minimum > dist
+      and not K-get "dead" ?
+      [
+        set minimum dist
+        set nearest-pos K-get "position" ?
+      ]
+    ]
+    
+    if nearest-pos != nobody
+    [
+      intelligent-update-belief "target" nearest-pos
+    ]
+    
+    stop 
+  ]
+  
+  if statu = "explorer"
+  [
+    
+    stop
+  ]
+end
+
+to shoot-target-drones
+  if elapsed-time > reload-time [
+    if distance intelligent-get-belief "target" < drones-radius-shoot
+    [
+      sound:play-note "GUNSHOT" 60 64 1
+      set elapsed-time 0
+      
+      if random 100 < ammos-accuracy [ ask intelligent-get-belief "target" [ set hp hp - ammos-degats ] ]
+    ]
+  ]
+end

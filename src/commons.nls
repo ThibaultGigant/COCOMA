@@ -182,14 +182,14 @@ to observe-enemies
     let current-enemy K-get-Info-Enemy ?
     ifelse empty? current-enemy
     [
-      intelligent-update-belief "K-Infos-Enemies" lput (list "tick" ticks "turtle" ? "position" [patch-here] of ?) intelligent-get-belief "K-Infos-Enemies"
+      intelligent-update-belief "K-Infos-Enemies" lput (list "tick" ticks "turtle" ? "position" [patch-here] of ? "dead" [dead?] of ?) intelligent-get-belief "K-Infos-Enemies"
       set K-enemies-updated true
     ]
     [
       if zone-of-path-drones [patch-here] of ? != zone-of-path-drones K-get "position" current-enemy
       or ticks - K-get "tick" current-enemy > 20
       [
-        intelligent-update-belief "K-Infos-Enemies" lput (list "tick" ticks "turtle" ? "position" [patch-here] of ?) remove current-enemy intelligent-get-belief "K-Infos-Enemies"
+        intelligent-update-belief "K-Infos-Enemies" lput (list "tick" ticks "turtle" ? "position" [patch-here] of ? "dead" [dead?] of ?) remove current-enemy intelligent-get-belief "K-Infos-Enemies"
         set K-enemies-updated true
       ]
     ]
@@ -248,8 +248,9 @@ to-report is-there-detected-enemies [ patch-ref ]
   
   foreach K-Infos-Enemies
   [
-    if K-get "tick" ? < ticks - 20 and
-       [distance zone-of-path-drones K-get "position" ? ] of zone-of-path-drones patch-ref <= taille-zone-drones * 2
+    if K-get "tick" ? < ticks - 20
+    and [distance zone-of-path-drones K-get "position" ? ] of zone-of-path-drones patch-ref <= taille-zone-drones * 2
+    and not K-get "dead" ?
     [
       set liste lput ? liste
     ]

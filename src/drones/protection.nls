@@ -191,6 +191,8 @@ end
 to protect-convoi
   enrollement-suivi
   
+  ronde
+  
   suivi-convoi-drones
     
   ;; Attaque des drones
@@ -199,7 +201,6 @@ to protect-convoi
   ;; Exploration de la route du convois
   explore-path
   
-  ronde
 end
 
 to-report protect-convoi-done
@@ -248,7 +249,6 @@ to suivi-convoi-drones
       let last-seen K-get-Info-Convoi convoi-suivi
       ifelse last-seen != nobody and last-seen != []
       [
-        show last-seen
         intelligent-update-belief "target" K-get "position" last-seen
       ]
       [
@@ -269,19 +269,23 @@ to ronde
     let convoi-suivi intelligent-get-belief "convoi-suivi"
     if convoi-suivi = nobody [ stop ]
     let diff 90 - heading - towards-nowrap convoi-suivi
-    if diff > 30
+;    if diff > 30
+;    [
+;      lt 5
+;      fuel-consomme "rotation" 5
+;      fd-drones speed
+;      fuel-consomme "fd" speed
+;    ]
+    if diff < -15
     [
-      lt 5
-      fuel-consomme "rotation" 5
-      fd-drones speed / 2
-      fuel-consomme "fd" speed / 2
-    ]
-    if diff < -30
-    [
-      rt 5
-      fuel-consomme "rotation" 5
-      fd-drones speed / 2
-      fuel-consomme "fd" speed / 2
+      rt 10
+      fuel-consomme "rotation" 10
+      
+      if abs (heading - [heading] of intelligent-get-belief "convoi-suivi") < 80
+      [
+        fd-drones speed
+        fuel-consomme "fd" speed
+      ]
     ]
   ]
 end

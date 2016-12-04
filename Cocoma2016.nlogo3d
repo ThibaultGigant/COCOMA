@@ -875,7 +875,7 @@ max-fuel-drones
 max-fuel-drones
 0
 300
-197
+300
 1
 1
 NIL
@@ -890,7 +890,7 @@ drones-suivi-radius
 drones-suivi-radius
 0
 100
-1
+5
 1
 1
 NIL
@@ -905,7 +905,7 @@ min-distance-drones
 min-distance-drones
 0
 100
-4
+7
 1
 1
 NIL
@@ -1219,8 +1219,8 @@ SLIDER
 460
 1596
 493
-time-to-check-zone-drones
-time-to-check-zone-drones
+time-to-check-zone
+time-to-check-zone
 20
 10000
 791
@@ -1318,7 +1318,7 @@ drones-reload-time
 drones-reload-time
 0
 100
-7
+4
 1
 1
 NIL

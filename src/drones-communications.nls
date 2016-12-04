@@ -87,7 +87,7 @@ to enrollement-demande-envoyee
       intelligent-update-belief "drone-protect team" (list self)
       intelligent-update-belief "counter enrollement" 0
       
-      set color [color] of intelligent-get-belief "target"
+      ;set color [color] of intelligent-get-belief "target"
       stop
     ]
   if check-message msg "drone-protect" "Refuse"
@@ -135,8 +135,7 @@ to enrollement-demande-envoyee-au-leader
     intelligent-update-belief "etat enrollement" "suivi"
     intelligent-update-belief "counter enrollement" 0
     
-    set color [color] of intelligent-get-belief "drone-protect leader"
-    show [color] of intelligent-get-belief "drone-protect leader"
+    ;set color [color] of intelligent-get-belief "drone-protect leader"
     stop
   ]
   if check-message msg "drone-protect" "Refuse"

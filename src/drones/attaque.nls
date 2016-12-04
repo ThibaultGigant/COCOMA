@@ -8,8 +8,9 @@
 to attaque-drones
   let target intelligent-get-belief "target"
   
-  ;; Si l'on suivait un patch, on oublie
+  ;; Si l'on suivait un patch, et qu'on y est arrivé, on oublie
   if target != nobody and member? target patches
+  and abs (xcor - [pxcor] of target ) + abs (ycor - [pycor] of target) < 1
   [
     intelligent-update-belief "target" intelligent-get-belief "convoi-suivi"
   ]

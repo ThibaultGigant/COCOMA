@@ -293,6 +293,7 @@ to suivi-target-drones
         set target-patch [patch xcor ycor zcor-tmp] of target-patch
       ]
       
+      show target-patch
       ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
       ifelse detect-obstacle-between-target-no-angle target-patch
       [

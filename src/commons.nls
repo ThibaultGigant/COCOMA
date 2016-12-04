@@ -187,6 +187,7 @@ to observe-enemies
     ]
     [
       if zone-of-path-drones [patch-here] of ? != zone-of-path-drones K-get "position" current-enemy
+      or ticks - K-get "tick" current-enemy > 20
       [
         intelligent-update-belief "K-Infos-Enemies" lput (list "tick" ticks "turtle" ? "position" [patch-here] of ?) remove current-enemy intelligent-get-belief "K-Infos-Enemies"
         set K-enemies-updated true
@@ -233,4 +234,26 @@ to check-attacked
   ifelse not isAttacked
   [ if last-health != health [ set isAttacked true  ] ]
   [ if last-health  = health [ set isAttacked false ] ]
+end
+
+;; 
+;; ---
+;; Renvoie tous les ennemis que l'on a détecté dans les environs
+;; Traitement par zone
+;; On tiens en compte la "fraicheur" de la connaissance, elle ne doit pas être trop vieille
+;; • patch-ref : Le patch à partir duquel on examine
+to-report is-there-detected-enemies [ patch-ref ]
+  let liste []
+  let K-Infos-Enemies intelligent-get-belief "K-Infos-Enemies"
+  
+  foreach K-Infos-Enemies
+  [
+    if K-get "tick" ? < ticks - 20 and
+       [distance zone-of-path-drones K-get "position" ? ] of zone-of-path-drones patch-ref <= taille-zone-drones * 2
+    [
+      set liste lput K-get "turtle" ? liste
+    ]
+  ]
+  
+  report liste
 end

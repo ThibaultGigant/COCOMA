@@ -415,6 +415,39 @@ end
 
 
 to update-Infos-Enemies [content]
+  ;; Récupération de la liste des croyances sur les drones
+  let Infos-Enemies K-get "K-Infos-Enemies" content
+  
+  let tick-of-K 0
+  
+  ;; Pour chaque drone
+  foreach Infos-Enemies
+  [
+    let turt K-get "turtle" ?
+    set tick-of-K K-get "tick" ?
+   
+    ;; On ne traite que les drones autres que nous même
+    if turt != self [
+      
+      ;; Récupération de nos croyance concernant ce drone
+      let current-info-enemy K-get-Info-Enemy turt
+      
+      let K-Infos-Enemies intelligent-get-belief "K-Infos-Enemies"
+      
+      ifelse current-info-enemy = [] 
+      [
+        intelligent-update-belief "K-Infos-Enemies" lput ? K-Infos-Enemies
+        set K-enemies-updated true
+      ]
+      [
+        if tick-of-K > K-get "tick" current-info-enemy
+        [
+          intelligent-update-belief "K-Infos-Enemies" lput ? remove current-info-enemy K-Infos-Enemies
+          set K-enemies-updated true
+        ]
+      ]
+    ]
+  ]
 end
 
 to ancre-III-manipulations-des-connaissances end

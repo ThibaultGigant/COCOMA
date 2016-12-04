@@ -251,7 +251,7 @@ to-report is-there-detected-enemies [ patch-ref ]
     if K-get "tick" ? < ticks - 20 and
        [distance zone-of-path-drones K-get "position" ? ] of zone-of-path-drones patch-ref <= taille-zone-drones * 2
     [
-      set liste lput K-get "turtle" ? liste
+      set liste lput ? liste
     ]
   ]
   

@@ -143,6 +143,7 @@ to move-to-target
 end
 
 to shoot-target
+  stop
   set elapsed-time elapsed-time + 1
   if elapsed-time > reload-time [
     if distance intelligent-get-belief "target" < shoot-radius

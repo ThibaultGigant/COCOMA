@@ -50,6 +50,7 @@ convois-own[incoming-queue
   last-health                 ; Nombre de points de vie restant au tick dernier
   beliefs                     ; Ensemble des croyances du convoi
   intentions                  ; Liste des intentions du convoi
+  objectif                    ; Objectif à atteindre (évite de devoir le recalculer à chaque fois)
 
   first-send                  ; Est-ce que le convoi à déjà communiqué au moins une fois ses informations
   K-convois-updated           ; Est-ce que les connaissances concernant les convois ont été modifiées ?
@@ -237,6 +238,8 @@ to setup-convois
       set to-protect? false
       set genlongpath? astar-longpath
       set dead? false
+
+      set objectif one-of patches with [ objectif? ]
 
       set health convois-health-points
       set last-health health
@@ -440,7 +443,7 @@ GRAPHICS-WINDOW
 0
 6
 1
-0
+1
 1
 ticks
 30.0
@@ -856,7 +859,7 @@ drones-vision-radius
 drones-vision-radius
 0
 100
-100
+50
 1
 1
 NIL
@@ -1161,7 +1164,7 @@ enemies-health-points
 enemies-health-points
 0
 100
-49
+50
 1
 1
 NIL

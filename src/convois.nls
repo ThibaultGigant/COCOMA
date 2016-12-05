@@ -10,12 +10,18 @@ to convois-think
 
   if nb-cars > 0 [
     
-    ;; Vérification des convois morts
-    ask convois [ check-if-alive ]
-
-    ;; Vérification des ennemis à proximité et sur le chemin
-    if ticks mod 10 = 0
-    [ check-enemies-around-convois ]
+    ;; Vérification
+    ask convois
+    [
+      ;; Vérification des convois morts
+      check-if-alive
+      
+      ;; Est-ce que la target à été atteinte ?
+      if empty? item (who - min [who] of convois) as-path
+      [
+        intelligent-update-belief "target" objectif
+      ]
+    ]
 
     if count convois = 0 [stop]
     let first-car min [who] of convois
@@ -191,182 +197,6 @@ to move-convoi [goal slowdown? cortege?]
   fd tmp-speed ; Avance
 end
 
-;; check-enemies-around-convois
-;; ---
-;; Fonction appelé seulment par les convois leader
-;; Vérifie s'il y a des ennemis qui ont été repérés aux alentour du convoi
-;; et de son chemin
-;; S'il y en a un en face de lui, il commande un split au mileu du cortege (s'il est au moins de taille 4)
-;; S'il y en a un sur un des cotés, il l'évite
-;; S'il y en a des deux cotés, ça va mal
-to check-enemies-around-convois
-  ask convois with [leader?]
-  [
-    ;; Liste des ennemis autour du convoi
-    let enemies-around-me is-there-detected-enemies patch-here
-    
-    ;; Liste des ennemis en face du convoi
-    let face-to-me filter [abs (heading - towards-nowrap K-get "position" ?) <= 25
-                      and [distance-nowrap myself] of K-get "turtle" ? < 20 ] enemies-around-me
-    let count-face length face-to-me
-    
-    ;; Liste des ennemis à droite du convoi
-    let right-to-me filter [heading - towards-nowrap K-get "position" ? < -25
-                        and heading - towards-nowrap K-get "position" ? < -75
-                        and [distance-nowrap myself] of K-get "turtle" ? < 20 ] enemies-around-me
-    let count-right length right-to-me
-    
-    ;; Liste des ennemis à gauche du convoi
-    let left-to-me filter [heading - towards-nowrap K-get "position" ? > 25
-                       and heading - towards-nowrap K-get "position" ? > 75
-                       and [distance-nowrap myself] of K-get "turtle" ? < 20 ] enemies-around-me
-    let count-left length left-to-me
-    
-    
-    let angle-to-objectif heading - towards-nowrap objectif
-    
-    let found false
-    let me self
-    let new-target []
-    ;; S'il y a des ennemis en face
-    if count-face != 0
-    [
-      let cortege-buddies intelligent-get-belief "cortege-buddies"
-      if count-right = 0 and count-left = 0 and length cortege-buddies >= 4
-      [
-        let middle-cortege item (length cortege-buddies / 2) cortege-buddies
-        ;; split
-        ;; Envoi d'un message à tous les convois du cortege
-        foreach cortege-buddies
-        [
-          send create-complete-msg ? "split-cortege" [who] of middle-cortege
-        ]
-        ;; Mise à jour de la propre connaissance sur le cortege
-        split-update-belief-cortege [who] of middle-cortege
-        
-        set new-target patches with [ pzcor = solAlt
-                                  and [distance-nowrap me] of self > taille-zone-drones / 2
-                                  and [distance-nowrap me] of self < taille-zone-drones
-                                  and 180 - [heading] of me - [towards-nowrap me] of self < -25
-                                  and 180 - [heading] of me - [towards-nowrap me] of self < -25 - 90 ]
-        if not empty? sort new-target
-        [
-          set found true
-          set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
-          set heading heading - 90
-          intelligent-update-belief "target" new-target
-        ]
-        
-        set new-target patches with [ pzcor = solAlt
-                                  and [distance-nowrap me] of self > taille-zone-drones / 2
-                                  and [distance-nowrap me] of self < taille-zone-drones
-                                  and 180 - [heading] of me - towards-nowrap me > 25
-                                  and 180 - [heading] of me - towards-nowrap me > 25 + 90 ]
-        if not empty? sort new-target
-        [
-          set found true
-          set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
-          ask middle-cortege
-          [
-            intelligent-update-belief "target" new-target
-            set heading heading + 90 
-          ]
-        ]
-        
-      ]
-      
-      ;; Si l'objectif est à droite, on préviligiera un contournement de ce coté
-      ifelse angle-to-objectif <= 0
-      [
-        ;; S'il y a peu d'ennemis à droite 
-        if not found and count-right < count-face / 2
-        [
-          set new-target patches with [pzcor = solAlt
-                                  and [distance-nowrap me] of self > taille-zone-drones and 180 - [heading] of me - towards-nowrap me < -25 ]
-          if not empty? sort new-target
-          [
-            set found true
-            set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
-            intelligent-update-belief "target" new-target
-          ]
-        ]
-        
-        ;; Sinon, s'il y a peu d'ennemis à gauche
-        if not found and count-left < count-face / 2
-        [
-          set new-target patches with [ [distance-nowrap me] of self > taille-zone-drones / 2
-                                  and [distance-nowrap me] of self < taille-zone-drones and 180 - [heading] of me - towards-nowrap me > 25 ]
-          if not empty? sort new-target
-          [
-            set found true
-            set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
-            intelligent-update-belief "target" new-target
-          ]
-        ]
-      ]
-      
-      ;; Sinon, on privilégie la gauche
-      [
-        ;; s'il y a peu d'ennemis à gauche
-        if not found and count-left < count-face / 2
-        [
-          set new-target patches with [pzcor = solAlt
-                                  and  [distance-nowrap me] of self > taille-zone-drones / 2
-                                  and [distance-nowrap me] of self < taille-zone-drones and 180 - [heading] of me - towards-nowrap me > 25 ]
-          if not empty? sort new-target
-          [
-            set found true
-            set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
-            intelligent-update-belief "target" new-target
-          ]
-        ]
-        
-        ;; Sinon, s'il y a peu d'ennemis à droite 
-        if not found and count-right < count-face / 2
-        [
-          set new-target patches with [pzcor = solAlt
-                                  and  self != [patch-here] of me and [distance-nowrap me] of self > taille-zone-drones / 2
-                                  and [distance-nowrap me] of self < taille-zone-drones and 180 - [heading] of me - towards-nowrap me < -25 ]
-          if not empty? sort new-target
-          [
-            set found true
-            set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
-            intelligent-update-belief "target" new-target
-          ]
-        ]
-      ]
-    ]
-    
-    if not found and count-right <  count-left
-    [
-      if not found and count-right < count-face / 2
-      [
-        set new-target patches with [pzcor = solAlt
-                                  and  self != [patch-here] of self and [distance-nowrap me] of self > taille-zone-drones / 2
-                                  and [distance-nowrap me] of self < taille-zone-drones and [heading] of me - towards-nowrap me < -25 ]
-        if not empty? sort new-target
-        [
-          set found true
-          set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
-          intelligent-update-belief "target" new-target
-        ]
-      ]
-    ]
-    
-    if not found and count-left < count-right
-    [
-      set new-target patches with [pzcor = solAlt
-                                  and  self != [patch-here] of me and [distance-nowrap me] of self > taille-zone-drones / 2
-                                  and [distance-nowrap me] of self < taille-zone-drones and 180 - [heading] of me - towards-nowrap me > 25 ]
-      if not empty? sort new-target
-      [
-        set found true
-        set new-target one-of new-target with [ distance-nowrap me - min [distance-nowrap me] of new-target < 1 ]
-        intelligent-update-belief "target" new-target
-      ]
-    ]
-  ]
-end
 
 ;; Division du convoi ;;
 ;;--------------------;;

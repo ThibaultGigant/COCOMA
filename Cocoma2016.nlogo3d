@@ -14,7 +14,8 @@ __includes ["src/functions-astar.nls"
             "src/drones/protection.nls"
             "src/drones/intentions-generales.nls"
             "src/drones/exploration.nls"
-            "src/drones/attaque.nls"]
+            "src/drones/attaque.nls"
+            "src/drones/ordre-to-convoi.nls" ]
 
 extensions [sound]
 
@@ -617,7 +618,7 @@ simu-speed
 simu-speed
 0
 10
-1
+4
 1
 1
 NIL

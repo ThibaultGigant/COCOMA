@@ -193,6 +193,10 @@ to protect-convoi
   
   ronde
   
+  ;; Vérification des ennemis à proximité et sur le chemin
+  if ticks mod 10 = 0
+  [ ask drones with [leader?] [check-enemies-around-convois] ]
+  
   suivi-convoi-drones
     
   ;; Attaque des drones

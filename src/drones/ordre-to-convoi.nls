@@ -1,0 +1,240 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Gestion des ordre à donner au convoi ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; check-enemies-around-convois
+;; ---
+;; Fonction appelé seulment par les convois leader
+;; Vérifie s'il y a des ennemis qui ont été repérés aux alentour du convoi
+;; et de son chemin
+;; S'il y en a un en face de lui, il commande un split au mileu du cortege (s'il est au moins de taille 4)
+;; S'il y en a un sur un des cotés, il l'évite
+;; S'il y en a des deux cotés, ça va mal
+to check-enemies-around-convois
+  let convoi-suivi intelligent-get-belief "convoi-suivi"
+    ;; Liste des ennemis autour du convoi
+    let enemies-around-me is-there-detected-enemies [patch-here] of convoi-suivi
+    
+    ;; Liste des ennemis en face du convoi
+    ;let face-to-me filter [abs ([heading] of convoi-suivi - [towards-nowrap K-get "position" ?] of convoi-suivi) <= 25
+    ;                  and [distance-nowrap myself] of K-get "turtle" ? < 20 ] enemies-around-me
+    let face-to-me []
+    let right-to-me []
+    let left-to-me []
+    let tmp nobody
+    foreach enemies-around-me
+    [
+      set tmp ?
+      if abs ([heading] of convoi-suivi - [towards-nowrap K-get "position" tmp] of convoi-suivi) <= 25
+         and [distance-nowrap myself] of K-get "turtle" tmp < 20
+      [ set face-to-me lput tmp face-to-me ]
+      
+      if [heading] of convoi-suivi - [towards-nowrap K-get "position" tmp] of convoi-suivi < -25
+         and [heading] of convoi-suivi - [towards-nowrap K-get "position" tmp] of convoi-suivi < -75
+         and [distance-nowrap convoi-suivi] of K-get "turtle" tmp < 20
+      [ set right-to-me lput tmp right-to-me ]
+      
+      if [heading] of convoi-suivi - [towards-nowrap K-get "position" tmp] of convoi-suivi > 25
+         and [heading] of convoi-suivi - [towards-nowrap K-get "position" tmp] of convoi-suivi > 75
+         and [distance-nowrap convoi-suivi] of K-get "turtle" tmp < 20
+      [ set left-to-me lput tmp left-to-me ]
+    ]
+    let count-face length face-to-me
+    let count-right length right-to-me
+    let count-left length left-to-me
+    
+    show enemies-around-me
+    show face-to-me
+    show right-to-me
+    show left-to-me
+    
+    let angle-to-objectif [heading] of convoi-suivi - [towards-nowrap objectif] of convoi-suivi 
+    
+    let found false
+    let me convoi-suivi
+    let new-target []
+    ;; S'il y a des ennemis en face
+    if count-face != 0
+    [
+      let cortege-buddies [intelligent-get-belief "cortege-buddies"] of convoi-suivi 
+      if count-right = 0 and count-left = 0 and length cortege-buddies >= 4
+      [
+        show "Timon"
+        let middle-cortege item (length cortege-buddies / 2) cortege-buddies
+        ;; Envoi d'un message pour demander un split
+        request-split-convoi-to-leader [who] of convoi-suivi [who] of middle-cortege
+        
+        set new-target patches with [ pzcor = solAlt
+                                  and not obstacle?
+                                  and [distance-nowrap me] of self > taille-zone-drones / 2
+                                  and [distance-nowrap me] of self < taille-zone-drones
+                                  and 180 - [heading] of me - [towards-nowrap me] of self < -25
+                                  and 180 - [heading] of me - [towards-nowrap me] of self < -25 - 90 ]
+        if not empty? sort new-target
+        [
+          set found true
+          set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
+          ;ask convoi-suivi [ set heading heading - 90 ]
+          ask convoi-suivi
+          [
+            set genlongpath? false
+            intelligent-update-belief "target" new-target
+            set as-path replace-item ([who] of me - min [who] of convois) as-path []
+          ]
+        ]
+        
+        set new-target patches with [ pzcor = solAlt
+                                  and not obstacle?
+                                  and [distance-nowrap me] of self > taille-zone-drones / 2
+                                  and [distance-nowrap me] of self < taille-zone-drones
+                                  and 180 - 180 - towards-nowrap me > 25
+                                  and 180 - 180 - towards-nowrap me > 25 + 90 ]
+        if not empty? sort new-target
+        [
+          set found true
+          set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
+          ask middle-cortege
+          [
+            ask convoi-suivi
+            [
+              set genlongpath? false
+              intelligent-update-belief "target" new-target
+              set as-path replace-item ([who] of me - min [who] of convois) as-path []
+            ]
+            ;set heading heading + 90 
+          ]
+        ]
+        
+      ]
+      
+      ;; Si l'objectif est à droite, on préviligiera un contournement de ce coté
+      ifelse angle-to-objectif <= 0
+      [
+        ;; S'il y a peu d'ennemis à droite 
+        if not found and count-right < count-face / 2
+        [
+          set new-target patches with [pzcor = solAlt
+                                   and not obstacle?
+                                   and distance-nowrap me > taille-zone-drones and 180 - 180 - towards-nowrap me < -25 ]
+          if not empty? sort new-target
+          [
+            set found true
+            set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
+            ask convoi-suivi
+            [
+              set genlongpath? false
+              intelligent-update-belief "target" new-target
+              set as-path replace-item ([who] of me - min [who] of convois) as-path []
+            ]
+          ]
+        ]
+        
+        ;; Sinon, s'il y a peu d'ennemis à gauche
+        if not found and count-left < count-face / 2
+        [
+          set new-target patches with [ distance-nowrap me > taille-zone-drones / 2
+                                    and not obstacle?
+                                    and distance-nowrap me < taille-zone-drones and 180 - 180 - towards-nowrap me > 25 ]
+          if not empty? sort new-target
+          [
+            set found true
+            set new-target one-of new-target with [ distance-nowrap me - min [[distance-nowrap me] of self] of new-target < 1 ]
+            ask convoi-suivi
+            [
+              set genlongpath? false
+              intelligent-update-belief "target" new-target
+              set as-path replace-item ([who] of me - min [who] of convois) as-path []
+            ]
+          ]
+        ]
+      ]
+      
+      ;; Sinon, on privilégie la gauche
+      [
+        ;; s'il y a peu d'ennemis à gauche
+        if not found and count-left < count-face / 2
+        [
+          set new-target patches with [pzcor = solAlt
+                                   and not obstacle?
+                                   and distance-nowrap me > taille-zone-drones / 2
+                                   and distance-nowrap me < taille-zone-drones and 180 - towards-nowrap me > 25 ]
+          if not empty? sort new-target
+          [
+            set found true
+            set new-target one-of new-target with [ distance-nowrap me - min [distance-nowrap me] of new-target < 1 ]
+            ask convoi-suivi
+            [
+              set genlongpath? false
+              intelligent-update-belief "target" new-target
+              set as-path replace-item ([who] of me - min [who] of convois) as-path []
+            ]
+          ]
+        ]
+        
+        ;; Sinon, s'il y a peu d'ennemis à droite 
+        if not found and count-right < count-face / 2
+        [
+          set new-target patches with [pzcor = solAlt
+                                     and not obstacle?
+                                     and [distance-nowrap me] of self > taille-zone-drones / 2
+                                     and [distance-nowrap me] of self < taille-zone-drones and 180 - towards-nowrap me < -25 ]
+          if not empty? sort new-target
+          [
+            set found true
+            set new-target one-of new-target with [ distance-nowrap me - min [distance-nowrap me] of new-target < 1 ]
+            ask convoi-suivi
+            [
+              set genlongpath? false
+              intelligent-update-belief "target" new-target
+              set as-path replace-item ([who] of me - min [who] of convois) as-path []
+            ]
+          ]
+        ]
+      ]
+    ]
+    
+    if not found and count-right <  count-left
+    [
+      show "Timon"
+      if not found and count-right < count-face / 2
+      [
+        set new-target patches with [pzcor = solAlt
+                                    and not obstacle?
+                                    and distance-nowrap me > taille-zone-drones / 2
+                                    and distance-nowrap me < taille-zone-drones and 180 - towards-nowrap me < -25 ]
+        if not empty? sort new-target
+        [
+          set found true
+          set new-target one-of new-target with [ distance-nowrap me - min [distance-nowrap me] of new-target < 1 ]
+          ask convoi-suivi
+          [
+            set genlongpath? false
+            intelligent-update-belief "target" new-target
+            set as-path replace-item ([who] of me - min [who] of convois) as-path []
+          ]
+        ]
+      ]
+    ]
+    
+    if not found and count-left < count-right
+    [
+      show "Pumba"
+      set new-target patches with [pzcor = solAlt
+                                  and not obstacle?
+                                  and distance-nowrap me > taille-zone-drones / 2
+                                  and distance-nowrap me < taille-zone-drones and 180 - towards-nowrap me > 25 ]
+      
+      show new-target
+      if not empty? sort new-target
+      [
+        set found true
+        set new-target one-of new-target with [ distance-nowrap me - min [distance-nowrap me] of new-target < 1 ]
+        ask convoi-suivi
+        [
+          set genlongpath? false
+          intelligent-update-belief "target" new-target
+          set as-path replace-item ([who] of me - min [who] of convois) as-path []
+        ]
+      ]
+    ]
+end

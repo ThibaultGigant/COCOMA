@@ -248,8 +248,8 @@ to-report is-there-detected-enemies [ patch-ref ]
   
   foreach K-Infos-Enemies
   [
-    if K-get "tick" ? < ticks - 20
-    and [distance zone-of-path-drones K-get "position" ? ] of zone-of-path-drones patch-ref <= taille-zone-drones * 2
+    if K-get "tick" ? > ticks - 30
+    and [distance K-get "position" ? ] of patch-ref <= taille-zone-drones * 2
     and not K-get "dead" ?
     [
       set liste lput ? liste

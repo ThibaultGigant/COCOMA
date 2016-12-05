@@ -252,7 +252,7 @@ to check-if-alive
     set dead? true
     set hidden? true
     hide-turtle
-    die
+    ;die
   ]
 end
 

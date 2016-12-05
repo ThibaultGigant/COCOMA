@@ -332,7 +332,7 @@ to go
   stop-inspecting-dead-agents
   drones-think
   tick
-  if all? convois [ finished? ] [ stop ] ; Si tout le monde est arrivé, on arrête
+  if all? convois [ finished? or dead?] [ stop ] ; Si tout le monde est arrivé, on arrête
 end
 
 ; Replace le convoi à la base

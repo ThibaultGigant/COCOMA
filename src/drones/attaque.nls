@@ -112,14 +112,26 @@ to choose-enemy-to-target-in-knowledge
   ]
 end
 
+;; shoot-target-drones
+;; ---
+;; Le drone tire sur l'ennemi, s'il est à "bout protant"
+;; et qu'il lui restant au moins une munition
 to shoot-target-drones
+  if ammos <= 0 [ stop ]
   if elapsed-time > reload-time [
     if distance intelligent-get-belief "target" < drones-radius-shoot
     [
       sound:play-note "GUNSHOT" 60 64 1
       set elapsed-time 0
       
-      if random 100 < ammos-accuracy [ ask intelligent-get-belief "target" [ set hp hp - ammos-degats ] ]
+      if random 100 < ammos-accuracy
+      [
+        ask intelligent-get-belief "target"
+        [
+          set hp hp - ammos-degats
+          set ammos ammos - 1
+        ]
+      ]
     ]
   ]
 end

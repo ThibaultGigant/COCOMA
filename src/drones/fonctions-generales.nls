@@ -310,7 +310,7 @@ to suivi-target-drones
     ]
     ; Déplacement
     let target intelligent-get-belief "target"
-    if statu != "protect-convoi" or ( member? target convois and distance-nowrap target > drones-suivi-radius) [ fd-drones speed ]
+    if statu != "protect-convoi" or not member? target convois or distance-nowrap target > drones-suivi-radius [ fd-drones speed ]
   ]
 end
 

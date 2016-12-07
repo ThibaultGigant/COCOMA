@@ -262,9 +262,7 @@ to suivi-convoi-drones
   ]
   [
     let zcor-tmp zcor
-    if who = 11 [ show "Hakuna" 
-      show distance [patch pxcor pycor zcor-tmp ] of convoi-suivi
-      show convoi-suivi]
+    
     if distance [patch pxcor pycor zcor-tmp ] of convoi-suivi < 1
     [  intelligent-update-belief "target" intelligent-get-belief "convoi-suivi" ]
   ]

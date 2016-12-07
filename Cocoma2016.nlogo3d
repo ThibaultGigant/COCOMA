@@ -711,7 +711,7 @@ INPUTBOX
 348
 115
 nb-enemies
-20
+3
 1
 0
 Number
@@ -807,7 +807,7 @@ INPUTBOX
 418
 115
 nb-drones
-4
+3
 1
 0
 Number
@@ -921,7 +921,7 @@ enemies-communication-radius
 enemies-communication-radius
 0
 100
-50
+49
 1
 1
 NIL
@@ -1033,7 +1033,7 @@ SWITCH
 131
 show_messages
 show_messages
-0
+1
 1
 -1000
 
@@ -1166,7 +1166,7 @@ enemies-health-points
 enemies-health-points
 0
 100
-50
+3
 1
 1
 NIL
@@ -1335,6 +1335,36 @@ size-team-protector
 1
 10
 4
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+756
+622
+928
+655
+ammos-drones
+ammos-drones
+1
+10
+5
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+933
+622
+1106
+655
+ammos-degats-drones
+ammos-degats-drones
+1
+5
+1
 1
 1
 NIL
@@ -1683,7 +1713,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3
+NetLogo 3D 5.3.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

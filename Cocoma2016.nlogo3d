@@ -807,7 +807,7 @@ INPUTBOX
 418
 115
 nb-drones
-3
+4
 1
 0
 Number
@@ -1033,7 +1033,7 @@ SWITCH
 131
 show_messages
 show_messages
-1
+0
 1
 -1000
 
@@ -1289,7 +1289,7 @@ nb-protector
 nb-protector
 nb-drones - nb-explorator
 nb-drones - nb-explorator
-3
+4
 1
 1
 NIL
@@ -1319,6 +1319,21 @@ drones-reload-time
 drones-reload-time
 0
 100
+4
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1134
+494
+1306
+527
+size-team-protector
+size-team-protector
+1
+10
 4
 1
 1

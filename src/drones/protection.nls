@@ -246,7 +246,7 @@ to suivi-convoi-drones
   
   ;; Si le convoi n'est pas visible, on suit la dernière position connue
   let convoi-suivi intelligent-get-belief "target"
-  if not member? convoi-suivi patches
+  ifelse not member? convoi-suivi patches
   [
     if [distance myself] of convoi-suivi > drones-vision-radius
     [
@@ -259,6 +259,14 @@ to suivi-convoi-drones
         intelligent-update-belief "target" nobody
       ]
     ]
+  ]
+  [
+    let zcor-tmp zcor
+    if who = 11 [ show "Hakuna" 
+      show distance [patch pxcor pycor zcor-tmp ] of convoi-suivi
+      show convoi-suivi]
+    if distance [patch pxcor pycor zcor-tmp ] of convoi-suivi < 1
+    [  intelligent-update-belief "target" intelligent-get-belief "convoi-suivi" ]
   ]
   
   suivi-target-drones
@@ -306,11 +314,19 @@ to explore-path
     let explorateur one-of team-attacker
     let convoi-suivi intelligent-get-belief "convoi-suivi"
     
-    if [intelligent-get-belief "target"] of explorateur = convoi-suivi
+    let me self
+    
+    if random 60 = 0 and [intelligent-get-belief "target"] of explorateur = convoi-suivi
     [
       let path item ([who] of convoi-suivi - min [who] of convois) as-path
       if not empty? path
-      [ ask explorateur [ intelligent-update-belief "target" one-of path ] ]
+      [
+        set path sublist path 0 10
+        ask explorateur [
+          set my-path path
+          ;intelligent-update-belief "target" one-of (patch-set path) with [ distance-nowrap me < drones-vision-radius / 2 ]
+        ]
+      ]
     ]
   ]
 end

@@ -175,7 +175,7 @@ to enrollement-equipe
     let sender get-sender msg
     let team intelligent-get-belief "drone-protect team"
     
-    ifelse not member? [self] of turtle read-from-string sender team and length team < 4
+    ifelse not member? [self] of turtle read-from-string sender team and length team < size-team-protector
     [
       send create-complete-msg sender "drone-protect" "Accept"
       intelligent-update-belief "drone-protect team" lput (drone read-from-string sender) team

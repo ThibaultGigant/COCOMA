@@ -74,7 +74,7 @@ to setup-enemies
     
     ;; PLACEMENT
     ;; Au hasard dans le carré nord-ouest
-    move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and pxcor < (max-pxcor / 2) and pycor >= (max-pycor / 2) and pzcor = solAlt ]
+    move-to one-of patches with [not obstacle? and not objectif? and not base? and not hangar? and not (pxcor < (max-pxcor / 2) and pycor < (max-pycor / 2)) and pzcor = solAlt ]
     set zcor solAlt
   ]
 end
@@ -143,7 +143,6 @@ to move-to-target
 end
 
 to shoot-target
-  stop
   set elapsed-time elapsed-time + 1
   if elapsed-time > reload-time [
     if distance intelligent-get-belief "target" < shoot-radius

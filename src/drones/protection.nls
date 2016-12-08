@@ -398,6 +398,7 @@ to explore-path
         ask explorateur [
           set my-path path
           set follow-path true
+          if empty? path [ stop ]
           intelligent-update-belief "target" last path
           ;intelligent-update-belief "target" one-of (patch-set path) with [ distance-nowrap me < drones-vision-radius / 2 ]
         ]

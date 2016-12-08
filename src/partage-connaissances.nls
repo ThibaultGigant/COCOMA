@@ -106,7 +106,7 @@ to-report create-knowledges-Infos-Drones-drones
     let content []
     ifelse member? self drones ; TODO changer le member? en ajoutant un attribut à tout les turtles
     [
-      set content fput (list "tick" last-tick-update "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "isAtatcked" isAttacked "fuel" fuel) intelligent-get-belief "K-Infos-Drones"
+      set content fput (list "tick" last-tick-update "turtle" self "position" patch-here "role" statu "dead" dead? "pv" health "isAtatcked" isAttacked "fuel" fuel "ammos" ammos ) intelligent-get-belief "K-Infos-Drones"
       let content-convoi intelligent-get-belief "K-Infos-Convois"
     ]
     [

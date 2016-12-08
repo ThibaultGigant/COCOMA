@@ -300,7 +300,6 @@ to soft-reset-drones
   ]
 end
 
-;; TODO traiter les messages "Death notification"
 to drones-think
   ;; Les drones cherchent un chemin jusqu'à leur target
   ;; s'il y a un obstable

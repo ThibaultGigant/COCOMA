@@ -191,24 +191,51 @@ end
 to protect-convoi
   enrollement-suivi
   
-  ronde
+  ;ronde
+  
+  check-if-convoi-suivi-alive
   
   ;; Vérification des ennemis à proximité et sur le chemin
-  if ticks mod 10 = 0
-  [ ask drones with [leader?] [check-enemies-around-convois] ]
+  if leader? and ticks mod 3 = 0
+  [ check-enemies-around-convois ]
   
   suivi-convoi-drones
     
   ;; Attaque des drones
-  attaque-drones
+  if leader? [ attaque2-drones ]
   
   ;; Exploration de la route du convois
-  explore-path
+  ;explore-path
   
 end
 
 to-report protect-convoi-done
   report false
+end
+
+to check-if-convoi-suivi-alive
+  let convoi-suivi intelligent-get-belief "convoi-suivi"
+  
+  if distance convoi-suivi <= drones-vision-radius
+  and [dead?] of convoi-suivi
+  [
+    let liste sort-on [who] convois in-radius-nowrap drones-vision-radius
+    if empty? liste
+    [
+      add-intention "cherche-convoi-drones" "cherche-convoi-drones-done"
+      remove-intention get-intention
+      set leader? false
+      intelligent-update-belief "drone-protect team" []
+      intelligent-update-belief "drone-protect leader" nobody
+      stop
+    ]
+    let new-convoi-suivi first liste
+    if intelligent-get-belief "target" = intelligent-get-belief "convoi-suivi"
+    [
+      intelligent-update-belief "target" new-convoi-suivi
+    ]
+    intelligent-update-belief "convoi-suivi" new-convoi-suivi
+  ]
 end
 
 ;; search-convoi-drones
@@ -319,9 +346,10 @@ to explore-path
       let path item ([who] of convoi-suivi - min [who] of convois) as-path
       if not empty? path
       [
-        set path sublist path 0 10
+        ;set path sublist path 0 10
         ask explorateur [
-          set my-path path
+          ;set my-path path
+          intelligent-update-belief "target" item 10 path
           ;intelligent-update-belief "target" one-of (patch-set path) with [ distance-nowrap me < drones-vision-radius / 2 ]
         ]
       ]

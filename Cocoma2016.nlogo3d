@@ -605,7 +605,7 @@ SWITCH
 309
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -711,7 +711,7 @@ INPUTBOX
 348
 115
 nb-enemies
-3
+4
 1
 0
 Number
@@ -807,7 +807,7 @@ INPUTBOX
 418
 115
 nb-drones
-3
+4
 1
 0
 Number
@@ -906,7 +906,7 @@ min-distance-drones
 min-distance-drones
 0
 100
-7
+4
 1
 1
 NIL
@@ -1274,7 +1274,7 @@ nb-explorator
 nb-explorator
 0
 nb-drones
-0
+2
 1
 1
 NIL
@@ -1289,7 +1289,7 @@ nb-protector
 nb-protector
 nb-drones - nb-explorator
 nb-drones - nb-explorator
-4
+2
 1
 1
 NIL

@@ -44,6 +44,57 @@ to attaque-drones
   set elapsed-time elapsed-time + 1
 end
 
+to attaque2-drones
+  let me self
+  ;; Détermination de l'ennemi à viser
+  let convoi-suivi intelligent-get-belief "convoi-suivi"
+  let enemies-in-sight [sort-on [distance convoi-suivi] enemies with [not dead?] in-radius-nowrap 5] of convoi-suivi
+  if empty? enemies-in-sight
+  [
+    let tail-cortege intelligent-get-belief "tail-cortege"
+    set enemies-in-sight [sort-on [distance tail-cortege] enemies with [not dead?] in-radius-nowrap 5] of tail-cortege
+  ]
+  if empty? enemies-in-sight [ stop ]
+  let to-kill first enemies-in-sight
+  
+  
+  ;; Détermination du drone attaquant
+  let team turtle-set intelligent-get-belief "drone-protect team"
+  let maximum -1
+  let info-drone nobody
+  let ammos-tmp 0
+  let drone-attacker nobody
+  foreach sort team
+  [
+    if ? != self
+    [
+      set info-drone K-get-Info-Drone ?
+      set ammos-tmp K-get "ammos" info-drone
+      if distance ? <= communication-radius-drones and ammos-tmp > maximum
+      [
+        set maximum ammos-tmp
+        set drone-attacker ?
+      ]
+    ]
+  ]
+  
+  if maximum <= 0
+  [
+    set maximum ammos
+    set drone-attacker self
+  ]
+  
+  ;let drone-attacker last sort-on [ammos] team
+  
+  ;; S'il a encore des munitions,
+  ;; le drone sélectionné tire sur
+  ;; l'ennemi choisi
+  if maximum > 0
+  [
+    ask drone-attacker [ shoot-enemy-drones to-kill ]
+  ]
+end 
+
 ;; choose-enemy-to-target-in-vision
 ;; ---
 ;; Choisi un ennemi à cibler, parmi les ennemis en vu
@@ -124,14 +175,37 @@ to shoot-target-drones
       sound:play-note "GUNSHOT" 60 64 1
       set elapsed-time 0
       
-      if random 100 < ammos-accuracy
-      [
+      ;if random 100 < ammos-accuracy
+      ;[
         ask intelligent-get-belief "target"
         [
           set hp hp - ammos-degats
           set ammos ammos - 1
         ]
-      ]
+      ;]
     ]
+  ]
+end
+
+;; shoot-enemy-drones
+;; ---
+;; Le drone tire sur l'ennemi indiqué, s'il est à "bout protant"
+;; et qu'il lui restant au moins une munition
+;; • to-shoot  : L'ennemi sur lequel tirer
+to shoot-enemy-drones [ to-shoot ]
+  if ammos <= 0 [ stop ]
+  if distance to-shoot < drones-radius-shoot
+  [
+    sound:play-note "GUNSHOT" 60 64 1
+    set elapsed-time 0
+    
+    ;if random 100 < ammos-accuracy
+    ;[
+      ask to-shoot
+      [
+        set hp hp - ammos-degats-drones
+      ]
+      set ammos ammos - 1
+    ;]
   ]
 end

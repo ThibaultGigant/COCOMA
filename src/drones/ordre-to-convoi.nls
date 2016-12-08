@@ -65,7 +65,7 @@ to check-enemies-around-convois
           let new-team-leader item round ( len / 2 ) team
           let new-team []
           let updated-team team
-          let i round ( len / 2 ) - 1
+          let i floor ( len / 2 )
           while [i < len]
           [
             ;; Ajout du drone dans la nouvelle équipe
@@ -78,13 +78,23 @@ to check-enemies-around-convois
           ;; Montée de grade du nouveau leader
           ask new-team-leader [ set leader? true ]
           
-          ;; Formation de la nouvelle équipe
-          ask turtle-set new-team-leader
+          let tail-cortege intelligent-get-belief "tail-cortege"
+          intelligent-update-belief "tail-cortege" item (length cortege-buddies / 2 - 1) cortege-buddies
+          
+          intelligent-update-belief "drone-protect team" updated-team
+          ask turtle-set intelligent-get-belief "drone-protect team"
           [
-            intelligent-update-belief "leader" new-team-leader
+            intelligent-update-belief "drone-protect team" updated-team
+          ]
+          
+          ;; Formation de la nouvelle équipe
+          ask turtle-set new-team
+          [
+            intelligent-update-belief "drone-protect leader" new-team-leader
             intelligent-update-belief "drone-protect team" new-team
             intelligent-update-belief "target" middle-cortege
             intelligent-update-belief "convoi-suivi" middle-cortege
+            intelligent-update-belief "tail-cortege" tail-cortege
           ]
         ]
         
@@ -258,45 +268,6 @@ to check-enemies-around-convois
             intelligent-update-belief "target" new-target
             set as-path replace-item ([who] of me - min [who] of convois) as-path []
           ]
-        ]
-      ]
-    ]
-    
-    if not found
-    [
-      let minimum 0
-      let minimum-set []
-      if count-face != 0 and count-face < minimum
-      [
-        set minimum count-face
-        set minimum-set face-to-me
-      ]
-      
-      if count-right != 0 and count-right < minimum
-      [
-        set minimum count-right
-        set minimum-set right-to-me
-      ]
-      
-      if count-left != 0 and count-left < minimum
-      [
-        set minimum count-left
-        set minimum-set left-to-me
-      ]
-      
-      if minimum != 0
-      [
-        ;; Détermination de l'ennemi à viser
-        let to-kill first sort-on [distance me] face-to-me
-        
-        ;; Détermination du drone attaquant
-        let team turtle-set intelligent-get-belief "drone-protect team"
-        let drone-attacker last sort-on [ammos] team
-        
-        ;; S'il a encore des munitions
-        if [ammos] of drone-attacker != 0
-        [
-          
         ]
       ]
     ]

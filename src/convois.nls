@@ -60,7 +60,7 @@ to search-ways-convois [first-car]
       ;let new-path plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) (one-of patches with [objectif?]) ([genlongpath?] of ?)
       let new-path plan-astar ([patch-at 0 0 (pzcor * -1)] of start-patch) ([intelligent-get-belief "target"] of ?) ([genlongpath?] of ?)
       ; S'il n'y a pas de plan et qu'on a essayé de trouver un long chemin, on attend la prochaine iteration et on reessaie mais avec un plan court
-      show "this is it"
+      ;show "this is it"
       if empty? new-path and [genlongpath?] of ? [ ask ? [ set genlongpath? false ] ]
       ; S'il n'y a pas deja une entree pour cette voiture on la cree
       ifelse length as-path < (id + 1) [

@@ -22,6 +22,7 @@ to recrutement-drones
     ifelse protecteur = nobody
     [
       set reply add-content "Accept" reply
+      set reply add-field reply "tail:" [who] of last sort-on [who] turtle-set intelligent-get-belief "cortege-buddies"
       intelligent-update-belief "drone-protecteur" sender
     ]
     [ set reply add-content protecteur reply ]

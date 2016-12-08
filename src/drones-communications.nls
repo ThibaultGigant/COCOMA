@@ -86,6 +86,7 @@ to enrollement-demande-envoyee
       intelligent-update-belief "drone-protect leader" self
       intelligent-update-belief "drone-protect team" (list self)
       intelligent-update-belief "counter enrollement" 0
+      intelligent-update-belief "tail-cortege" convoi read-from-string first get-field "tail" msg
       
       ;set color [color] of intelligent-get-belief "target"
       stop

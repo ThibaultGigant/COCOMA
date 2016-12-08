@@ -572,7 +572,7 @@ SWITCH
 220
 astar-longpath
 astar-longpath
-0
+1
 1
 -1000
 
@@ -605,7 +605,7 @@ SWITCH
 309
 astar-visu
 astar-visu
-1
+0
 1
 -1000
 
@@ -618,7 +618,7 @@ simu-speed
 simu-speed
 0
 10
-4
+3
 1
 1
 NIL
@@ -711,7 +711,7 @@ INPUTBOX
 348
 115
 nb-enemies
-4
+20
 1
 0
 Number
@@ -807,7 +807,7 @@ INPUTBOX
 418
 115
 nb-drones
-4
+6
 1
 0
 Number
@@ -906,7 +906,7 @@ min-distance-drones
 min-distance-drones
 0
 100
-4
+5
 1
 1
 NIL
@@ -977,7 +977,7 @@ speed-drones
 speed-drones
 0
 300
-59
+122
 1
 1
 NIL
@@ -1289,7 +1289,7 @@ nb-protector
 nb-protector
 nb-drones - nb-explorator
 nb-drones - nb-explorator
-2
+4
 1
 1
 NIL
@@ -1304,7 +1304,7 @@ drones-radius-shoot
 drones-radius-shoot
 10
 drones-vision-radius
-13
+10
 1
 1
 NIL
@@ -1713,7 +1713,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 3D 5.3.1
+NetLogo 3D 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

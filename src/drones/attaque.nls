@@ -77,7 +77,6 @@ to attaque2-drones
       ]
     ]
   ]
-  
   if maximum <= 0
   [
     set maximum ammos

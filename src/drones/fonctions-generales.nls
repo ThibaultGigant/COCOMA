@@ -281,11 +281,24 @@ end
 ;; Le drone suit le convoi qu'il souhaite protéger
 to suivi-target-drones
   if intelligent-get-belief "target" != nobody [
+    
+    ;; Récupération du patch ciblé
+    let target-patch intelligent-get-belief "target"
+    
+    if statu = "protect-convoi" and member? target-patch patches
+    [
+      let enemy-detected enemies with [not dead?] in-radius-nowrap 10
+      if count enemy-detected > 0
+      [
+        intelligent-update-belief "target" intelligent-get-belief "convoi-suivi"
+        intelligent-update-belief "enemy-detected-on-path" first sort enemy-detected
+        set my-path []
+      ]
+    ]
+    
     ;; S'il y a un chemin a suivre
     if not empty? my-path
     [
-      ;; Récupération du patch ciblé
-      let target-patch intelligent-get-belief "target"
       ;; Si target est un agent, on récupère un patch
       if member? target-patch turtles
       [
@@ -294,7 +307,8 @@ to suivi-target-drones
       ]
       
       ;; On ne calcule un chemin que si c'est nécessaire : obstacle entre soi et la target
-      ifelse detect-obstacle-between-target-no-angle target-patch
+      ;; Ou que le drone est en train d'explorer le chemin
+      ifelse detect-obstacle-between-target-no-angle target-patch or follow-path
       [
         move-to-target-astar-drones
         stop
@@ -362,7 +376,7 @@ end
 ; Mouvement le long d'un chemin astar calculé précédemment
 to move-to-target-astar-drones
   ; Vérification qu'on a bien un chemin astar en mémoire
-  if not empty? my-path
+  ifelse not empty? my-path
   [
     let zcor-tmp zcor
     let next-patch [patch pxcor pycor zcor-tmp] of first my-path
@@ -380,5 +394,9 @@ to move-to-target-astar-drones
       set my-path remove-item 0 my-path
       if debug [ show (word "Waypoint atteint: " patch-here ", prochain: " next-patch ) ]
     ]
+  ]
+  [
+    if follow-path
+    [ set follow-path false ]
   ]
 end

@@ -23,6 +23,7 @@ drones-own [
   ;; • attacker                    : Est-ce que le drone est attquant ?
   ;; • ammos                       : Munitions du drone
   ;; • ammos-degat                 : Dégats d'un tire
+  ;; • follow-path                 : Flag. Est-ce que le drone est en train d'explorer un chemin
   ;;
   ;; • intentions                  : Liste des intentions du drone, pour la BDI
   ;; • incoming-queue              : Liste des messages reçus
@@ -47,6 +48,7 @@ drones-own [
   attacker
   ammos
   ammos-degat
+  follow-path
   
   intentions
   incoming-queue
@@ -138,6 +140,7 @@ to setup-drones
     set attacker false
     set ammos ammos-drones
     set ammos-degat ammos-degats-drones
+    set follow-path false
     
     set intentions ([])
     set incoming-queue []
@@ -229,6 +232,7 @@ to setup-drones-beliefs
   intelligent-update-belief "counter enrollement" 0
   intelligent-update-belief "drone-protect leader" nobody
   intelligent-update-belief "drone-protect team" []
+  intelligent-update-belief "enemy-detected-on-path" nobody
   
   intelligent-update-belief "old-target" nobody
   intelligent-update-belief "explorator-check-counter" 0

@@ -180,7 +180,7 @@ to enrollement-equipe
     [
       send create-complete-msg sender "drone-protect" "Accept"
       intelligent-update-belief "drone-protect team" lput (drone read-from-string sender) team
-      if length team mod 2 = 1
+      if length team = size-team-protector
       [
         ask drone read-from-string sender [ set attacker true ]
       ]

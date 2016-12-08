@@ -191,13 +191,17 @@ end
 to protect-convoi
   enrollement-suivi
   
-  ;ronde
+  ronde
   
   check-if-convoi-suivi-alive
   
   ;; Vérification des ennemis à proximité et sur le chemin
-  if leader? and ticks mod 3 = 0
-  [ check-enemies-around-convois ]
+  ;if leader? and ticks mod 3 = 0
+  ;[ check-enemies-around-convois ]
+  
+  ;; Détection des ennemis sur la voie
+  check-if-enemies-on-path
+  enemy-detected-strategy
   
   suivi-convoi-drones
     
@@ -205,12 +209,28 @@ to protect-convoi
   if leader? [ attaque2-drones ]
   
   ;; Exploration de la route du convois
-  ;explore-path
+  explore-path
   
 end
 
 to-report protect-convoi-done
   report false
+end
+
+to check-if-enemies-on-path
+  ;; Ennemi détecté sur la voie
+  let enemy-detected intelligent-get-belief "enemy-detected-on-path"
+  if not leader? and enemy-detected != nobody and distance-nowrap intelligent-get-belief "drone-protect leader" <= communication-radius-drones
+  [
+    send create-complete-msg intelligent-get-belief "drone-protect leader" "enemy-detected" enemy-detected
+    intelligent-update-belief "enemy-detected-on-path" nobody
+  ]
+  
+  ;; On nous informe qu'un ennemi à été détecté sur la voie
+  let msg get-msg-if-performative "enemy-detected"
+  if msg = nobody or msg = "no_message" [ stop ]
+  set enemy-detected get-content msg
+  intelligent-update-belief "enemy-detected-on-path" enemy-detected
 end
 
 to check-if-convoi-suivi-alive
@@ -273,7 +293,7 @@ to suivi-convoi-drones
   
   ;; Si le convoi n'est pas visible, on suit la dernière position connue
   let convoi-suivi intelligent-get-belief "target"
-  ifelse not member? convoi-suivi patches
+  ifelse convoi-suivi != nobody and not member? convoi-suivi patches
   [
     if [distance myself] of convoi-suivi > drones-vision-radius
     [
@@ -341,15 +361,16 @@ to explore-path
     
     let me self
     
-    if random 60 = 0 and [intelligent-get-belief "target"] of explorateur = convoi-suivi
+    if random 20 = 0 and [intelligent-get-belief "target"] of explorateur = convoi-suivi
     [
       let path item ([who] of convoi-suivi - min [who] of convois) as-path
       if not empty? path
       [
-        ;set path sublist path 0 10
+        set path sublist path min (list 10 length path) min (list 50 length path)
         ask explorateur [
-          ;set my-path path
-          intelligent-update-belief "target" item 10 path
+          set my-path path
+          set follow-path true
+          intelligent-update-belief "target" last path
           ;intelligent-update-belief "target" one-of (patch-set path) with [ distance-nowrap me < drones-vision-radius / 2 ]
         ]
       ]

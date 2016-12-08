@@ -107,7 +107,7 @@ to check-enemies-around-convois
         if not empty? sort new-target
         [
           set found true
-          set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
+          set new-target first sort-on [[distance-nowrap me] of self] new-target
           ;ask convoi-suivi [ set heading heading - 90 ]
           ask convoi-suivi
           [
@@ -121,12 +121,12 @@ to check-enemies-around-convois
                                   and not obstacle?
                                   and [distance-nowrap me] of self > taille-zone-drones / 2
                                   and [distance-nowrap me] of self < taille-zone-drones
-                                  and 180 - 180 - towards-nowrap me > 25
-                                  and 180 - 180 - towards-nowrap me > 25 + 90 ]
+                                  and 180 - [towards-nowrap me] of self > 25
+                                  and 180 - [towards-nowrap me] of self > 25 + 90 ]
         if not empty? sort new-target
         [
           set found true
-          set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
+          set new-target first sort-on [[distance-nowrap me] of self] new-target
           ask middle-cortege
           [
             ask convoi-suivi
@@ -149,11 +149,11 @@ to check-enemies-around-convois
         [
           set new-target patches with [pzcor = solAlt
                                    and not obstacle?
-                                   and distance-nowrap me > taille-zone-drones and 180 - 180 - towards-nowrap me < -25 ]
+                                   and distance-nowrap me > taille-zone-drones and 180 - [towards-nowrap me] of self < -25 ]
           if not empty? sort new-target
           [
             set found true
-            set new-target one-of new-target with [ [distance-nowrap me] of self - min [[distance-nowrap me] of self] of new-target < 1 ]
+            set new-target first sort-on [[distance-nowrap me] of self] new-target
             ask convoi-suivi
             [
               set genlongpath? false
@@ -168,7 +168,7 @@ to check-enemies-around-convois
         [
           set new-target patches with [ distance-nowrap me > taille-zone-drones / 2
                                     and not obstacle?
-                                    and distance-nowrap me < taille-zone-drones and 180 - 180 - towards-nowrap me > 25 ]
+                                    and distance-nowrap me < taille-zone-drones and 180 - [towards-nowrap me] of self > 25 ]
           if not empty? sort new-target
           [
             set found true
@@ -191,7 +191,7 @@ to check-enemies-around-convois
           set new-target patches with [pzcor = solAlt
                                    and not obstacle?
                                    and distance-nowrap me > taille-zone-drones / 2
-                                   and distance-nowrap me < taille-zone-drones and 180 - towards-nowrap me > 25 ]
+                                   and distance-nowrap me < taille-zone-drones and 180 - [towards-nowrap me] of self > 25 ]
           if not empty? sort new-target
           [
             set found true
@@ -211,7 +211,7 @@ to check-enemies-around-convois
           set new-target patches with [pzcor = solAlt
                                      and not obstacle?
                                      and [distance-nowrap me] of self > taille-zone-drones / 2
-                                     and [distance-nowrap me] of self < taille-zone-drones and 180 - towards-nowrap me < -25 ]
+                                     and [distance-nowrap me] of self < taille-zone-drones and 180 - [towards-nowrap me] of self < -25 ]
           if not empty? sort new-target
           [
             set found true
@@ -234,7 +234,7 @@ to check-enemies-around-convois
         set new-target patches with [pzcor = solAlt
                                     and not obstacle?
                                     and distance-nowrap me > taille-zone-drones / 2
-                                    and distance-nowrap me < taille-zone-drones and 180 - towards-nowrap me < -25 ]
+                                    and distance-nowrap me < taille-zone-drones and 180 - [towards-nowrap me] of self < -25 ]
         if not empty? sort new-target
         [
           set found true
@@ -256,7 +256,7 @@ to check-enemies-around-convois
         set new-target patches with [pzcor = solAlt
           and not obstacle?
           and distance-nowrap me > taille-zone-drones / 2
-          and distance-nowrap me < taille-zone-drones and 180 - towards-nowrap me > 25 ]
+          and distance-nowrap me < taille-zone-drones and 180 - [towards-nowrap me] of self > 25 ]
         
         if not empty? sort new-target
         [
@@ -271,4 +271,81 @@ to check-enemies-around-convois
         ]
       ]
     ]
+end
+
+to enemy-detected-strategy
+  if leader?
+  [
+    let enemy-detected intelligent-get-belief "enemy-detected-on-path"
+    if enemy-detected != nobody
+    [
+      let convoi-suivi intelligent-get-belief "convoi-suivi"
+      let angle heading - towards-nowrap enemy-detected
+      let new-target []
+      if angle > 25
+      [
+        ask convoi-suivi
+        [
+          let me self
+          set new-target patches with [ pzcor = solAlt
+                                  and not obstacle?
+                                  and [distance-nowrap me] of self > taille-zone-drones / 2
+                                  and [distance-nowrap me] of self < taille-zone-drones
+                                  ;and 180 - [towards-nowrap me] of self < 25
+                                  and 180 - [towards-nowrap me] of self < -25 ]
+          set new-target first sort-on [[distance-nowrap me] of self] new-target
+          set genlongpath? false
+          intelligent-update-belief "target" new-target
+          set as-path replace-item ([who] of me - min [who] of convois) as-path []
+        ]
+        intelligent-update-belief "enemy-detected-on-path" nobody
+        stop
+      ]
+      
+      if angle < -25
+      [
+        ask convoi-suivi
+        [
+          let me self
+          set new-target patches with [ pzcor = solAlt
+                                  and not obstacle?
+                                  and [distance-nowrap me] of self > taille-zone-drones / 2
+                                  and [distance-nowrap me] of self < taille-zone-drones
+                                  and 180 - [towards-nowrap me] of self > 25 ]
+                                  ;and 180 - [towards-nowrap me] of self > -25 ]
+          set new-target first sort-on [[distance-nowrap me] of self] new-target
+          set genlongpath? false
+          intelligent-update-belief "target" new-target
+          set as-path replace-item ([who] of me - min [who] of convois) as-path []
+        ]
+        intelligent-update-belief "enemy-detected-on-path" nobody
+        stop
+      ]
+      
+      ask convoi-suivi
+      [
+        let me self
+        set new-target patches with [ pzcor = solAlt
+                                and not obstacle?
+                                and [distance-nowrap me] of self > taille-zone-drones / 2
+                                and [distance-nowrap me] of self < taille-zone-drones
+                                and 180 - [towards-nowrap me] of self > 25]
+        if count new-target > 0
+        [
+          set new-target patches with [ pzcor = solAlt
+                                and not obstacle?
+                                and [distance-nowrap me] of self > taille-zone-drones / 2
+                                and [distance-nowrap me] of self < taille-zone-drones
+                                and 180 - [towards-nowrap me] of self < -25]
+          
+        ]
+        if count new-target = 0 [ stop ]
+        set new-target first sort-on [[distance-nowrap me] of self] new-target
+        set genlongpath? false
+        intelligent-update-belief "target" new-target
+        set as-path replace-item ([who] of me - min [who] of convois) as-path []
+      ]
+      intelligent-update-belief "enemy-detected-on-path" nobody
+    ]
+  ]
 end

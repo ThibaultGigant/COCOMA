@@ -263,6 +263,8 @@ to check-if-alive-enemies
   if hp <= 0
   [
     set dead? true
+    set color black
+    set shape "x"
   ]
 end
 
@@ -323,12 +325,12 @@ to update-intentions
   [
     if exists-belief-target
     [
-      let obstacle-ahead false; detect-obstacles-enemy-target
+      let obstacle-ahead detect-obstacles-enemy-target
       if not obstacle-ahead and (empty? intentions or current-intention != "suivre-target")
       [
         ;if (not empty? intentions) and current-intention != "suivre-target" [pop-intention]
         set my-path []
-        add-intention "suivre-target" "not exists-belief-target and detect-obstacles-enemy-target"
+        add-intention "suivre-target" "not exists-belief-target or detect-obstacles-enemy-target"
       ]
       if obstacle-ahead and (empty? intentions or current-intention != "eviter-obstacle")
       [

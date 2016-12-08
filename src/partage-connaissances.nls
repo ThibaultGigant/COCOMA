@@ -262,7 +262,8 @@ to-report need-send-knowledges [ type-knowledge ]
     [
       let flag (last-role         != intention-name get-intention or
                 last-isAttacked   != isAttacked or
-                last-stat-of-fuel != floor (fuel / max (list fuel-estimate 50)))
+                last-stat-of-fuel != floor (fuel / max (list fuel-estimate 50)) or
+                last-ammos != ammos)
                
       if flag [ set last-tick-update ticks ]
       

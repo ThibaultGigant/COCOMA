@@ -35,3 +35,7 @@ to remove-beliefs-with-key [key]
     remove-belief intelligent-get-belief key
   ]
 end
+
+to-report igb [t]
+  report intelligent-get-belief t
+end

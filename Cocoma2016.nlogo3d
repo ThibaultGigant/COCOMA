@@ -605,7 +605,7 @@ SWITCH
 309
 astar-visu
 astar-visu
-0
+1
 1
 -1000
 
@@ -711,7 +711,7 @@ INPUTBOX
 348
 115
 nb-enemies
-20
+1
 1
 0
 Number
@@ -807,7 +807,7 @@ INPUTBOX
 418
 115
 nb-drones
-6
+2
 1
 0
 Number
@@ -891,7 +891,7 @@ drones-suivi-radius
 drones-suivi-radius
 0
 100
-5
+19
 1
 1
 NIL

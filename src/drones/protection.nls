@@ -323,32 +323,55 @@ end
 to ronde
   if not attacker
   [
-    let me self
+;    let me self
+;    let convoi-suivi intelligent-get-belief "convoi-suivi"
+;    if convoi-suivi = nobody [ stop ]
+;    let angle1 [towards-nowrap me] of convoi-suivi
+;    let angle2 towards-nowrap convoi-suivi - angle1
+;    let diff 90 - heading - towards-nowrap convoi-suivi
+;    ;if diff > 30
+;    if angle2 < 70
+;    [
+;      rt 10
+;      fuel-consomme "rotation" 10
+;      fd-drones speed
+;      fuel-consomme "fd" speed
+;    ]
+;    ;if diff < -15
+;    if angle2 > 110
+;    [
+;      lt 10
+;      fuel-consomme "rotation" 10
+;      
+;      if abs (heading - [heading] of intelligent-get-belief "convoi-suivi") < 80
+;      [
+;        fd-drones speed
+;        fuel-consomme "fd" speed
+;      ]
+;    ]
+;    if distance-nowrap convoi-suivi < 7
+;    [
+;      let angle3 towards-nowrap convoi-suivi
+;      ifelse angle3 > 0
+;      [
+;        lt 10
+;        fuel-consomme "rotation" 10
+;      ]
+;      [
+;        rt 10
+;        fuel-consomme "rotation" 10
+;      ]
+;    ]
+
+    rt 1
+    fuel-consomme "rotation" 1
+    
     let convoi-suivi intelligent-get-belief "convoi-suivi"
-    if convoi-suivi = nobody [ stop ]
-    let angle1 [towards-nowrap me] of convoi-suivi
-    let angle2 towards-nowrap convoi-suivi - angle1
-    let diff 90 - heading - towards-nowrap convoi-suivi
-    ;if diff > 30
-    if angle2 < 90
-    [
-      lt 10
-      fuel-consomme "rotation" 10
-      fd-drones speed
-      fuel-consomme "fd" speed
-    ]
-    ;if diff < -15
-    if angle2 > 90
-    [
-      rt 10
-      fuel-consomme "rotation" 10
-      
-      if abs (heading - [heading] of intelligent-get-belief "convoi-suivi") < 80
-      [
-        fd-drones speed
-        fuel-consomme "fd" speed
-      ]
-    ]
+    let angle abs (heading - [heading] of convoi-suivi)
+    let sp (- speed / 360 ) * angle + speed
+    fd-drones sp
+    fuel-consomme "fd" sp
+    
   ]
 end
 

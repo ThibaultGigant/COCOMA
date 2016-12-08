@@ -18,6 +18,7 @@ to-report at-base-drones
 end
 
 to-report distance-min-drones
+  if random 3 != 0 [report false]
   if count drones < 2 [ report false ]
   ; Calcul de l'angle avec la cible
   let other-drone first sort-on [distance-nowrap myself] other drones
